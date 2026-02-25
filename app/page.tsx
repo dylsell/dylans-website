@@ -54,7 +54,7 @@ export default function Home() {
           </div>
 
           {/* Featured section */}
-          <div className="border-t border-zinc-800 pt-12">
+          <div className="border-t border-zinc-800 pt-12 mb-16">
             <p className="text-zinc-600 text-xs font-semibold tracking-widest uppercase mb-6">
               Latest
             </p>
@@ -71,6 +71,51 @@ export default function Home() {
               </div>
               <span className="text-zinc-600 group-hover:text-indigo-400 text-2xl transition-colors">→</span>
             </a>
+          </div>
+
+          {/* Speaking section */}
+          <div className="border-t border-zinc-800 pt-12">
+            <p className="text-zinc-600 text-xs font-semibold tracking-widest uppercase mb-2">
+              Speaking
+            </p>
+            <h2 className="text-white text-3xl font-black mb-8">On Stage</h2>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+              {[
+                {
+                  id: "QP0SHDV_7Ts",
+                  start: 1345,
+                  title: "Meet Breeze",
+                  event: "INBOUND 2024",
+                },
+                {
+                  id: "hT4NvY1vbK0",
+                  start: 297,
+                  title: "Meet ChatSpot",
+                  event: "INBOUND 2023",
+                },
+                {
+                  id: "qHXMlj6fdrI",
+                  start: 24,
+                  title: "Breeze Agents",
+                  event: "INBOUND 2025",
+                },
+              ].map((talk) => (
+                <div key={talk.id} className="group">
+                  <div className="relative w-full rounded-xl overflow-hidden bg-zinc-900 mb-3" style={{ paddingBottom: "56.25%" }}>
+                    <iframe
+                      className="absolute inset-0 w-full h-full"
+                      src={`https://www.youtube.com/embed/${talk.id}?start=${talk.start}`}
+                      title={talk.title}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  </div>
+                  <p className="text-white font-bold">{talk.title}</p>
+                  <p className="text-indigo-400 text-sm">{talk.event}</p>
+                </div>
+              ))}
+            </div>
           </div>
 
         </div>
