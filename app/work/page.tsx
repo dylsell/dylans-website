@@ -3,12 +3,17 @@ import Nav from "../components/Nav";
 
 const sections = [
   {
+    href: "/work/patents",
+    title: "Patents",
+    description: "3 granted and published patents from HubSpot, including one co-invented with Dharmesh Shah",
+    tag: "Intellectual Property",
+  },
+  {
     href: "/work/product-launch-talks",
     title: "Product Launch Talks",
     description: "On-stage presentations from INBOUND 2023, 2024, and 2025",
     tag: "Speaking",
   },
-  // More coming soon
 ];
 
 export default function Work() {
