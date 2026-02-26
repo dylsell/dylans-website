@@ -35,12 +35,51 @@ const LETTERS: Record<string, { word: string; emoji: string; color: string }> = 
 
 const ALL_LETTERS = Object.keys(LETTERS);
 
+// Voice preference order — best quality to fallback
+const VOICE_PRIORITY = [
+  "Google US English",        // Chrome on desktop — sounds great
+  "Samantha (Premium)",       // macOS/iOS premium
+  "Alex (Premium)",
+  "Ava (Premium)",
+  "Allison (Premium)",
+  "Susan (Premium)",
+  "Samantha (Enhanced)",      // macOS/iOS enhanced
+  "Ava (Enhanced)",
+  "Allison (Enhanced)",
+  "Samantha",                 // macOS built-in — decent
+  "Google UK English Female", // Chrome fallback
+  "Google UK English Male",
+];
+
+function getBestVoice(): SpeechSynthesisVoice | null {
+  const voices = window.speechSynthesis.getVoices();
+  if (!voices.length) return null;
+
+  for (const name of VOICE_PRIORITY) {
+    const match = voices.find((v) => v.name === name);
+    if (match) return match;
+  }
+
+  // Last resort: any en-US voice that isn't a compact/low-quality one
+  return (
+    voices.find((v) => v.lang === "en-US" && !v.name.toLowerCase().includes("compact")) ??
+    voices.find((v) => v.lang.startsWith("en")) ??
+    null
+  );
+}
+
 function speak(text: string) {
   if (typeof window === "undefined") return;
   window.speechSynthesis.cancel();
+
   const utterance = new SpeechSynthesisUtterance(text);
-  utterance.rate = 0.85;
-  utterance.pitch = 1.1;
+  utterance.rate = 0.82;
+  utterance.pitch = 1.05;
+  utterance.volume = 1;
+
+  const voice = getBestVoice();
+  if (voice) utterance.voice = voice;
+
   window.speechSynthesis.speak(utterance);
 }
 
