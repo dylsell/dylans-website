@@ -5,32 +5,32 @@ import Nav from "../../components/Nav";
 import { useState, useEffect } from "react";
 
 const LETTERS: Record<string, { word: string; emoji: string; color: string }> = {
-  A: { word: "Apple",     emoji: "🍎", color: "from-red-400 to-rose-500" },
-  B: { word: "Ball",      emoji: "⚽", color: "from-blue-400 to-indigo-500" },
-  C: { word: "Cat",       emoji: "🐱", color: "from-orange-400 to-amber-500" },
-  D: { word: "Dog",       emoji: "🐶", color: "from-yellow-400 to-orange-500" },
-  E: { word: "Elephant",  emoji: "🐘", color: "from-gray-400 to-slate-500" },
-  F: { word: "Fish",      emoji: "🐟", color: "from-cyan-400 to-blue-500" },
-  G: { word: "Grapes",    emoji: "🍇", color: "from-purple-400 to-violet-500" },
-  H: { word: "Hat",       emoji: "🎩", color: "from-slate-400 to-gray-600" },
-  I: { word: "Ice Cream", emoji: "🍦", color: "from-pink-300 to-rose-400" },
-  J: { word: "Juice",     emoji: "🧃", color: "from-yellow-300 to-lime-400" },
-  K: { word: "Kite",      emoji: "🪁", color: "from-sky-400 to-blue-500" },
-  L: { word: "Lion",      emoji: "🦁", color: "from-yellow-400 to-amber-500" },
-  M: { word: "Moon",      emoji: "🌙", color: "from-indigo-400 to-purple-500" },
-  N: { word: "Night",     emoji: "🌃", color: "from-blue-600 to-indigo-700" },
-  O: { word: "Orange",    emoji: "🍊", color: "from-orange-400 to-amber-400" },
-  P: { word: "Pizza",     emoji: "🍕", color: "from-red-300 to-orange-400" },
-  Q: { word: "Queen",     emoji: "👑", color: "from-yellow-400 to-amber-500" },
-  R: { word: "Rainbow",   emoji: "🌈", color: "from-pink-400 to-purple-500" },
-  S: { word: "Star",      emoji: "⭐", color: "from-yellow-300 to-orange-400" },
-  T: { word: "Tiger",     emoji: "🐯", color: "from-orange-400 to-red-500" },
-  U: { word: "Umbrella",  emoji: "☂️", color: "from-teal-400 to-cyan-500" },
-  V: { word: "Volcano",   emoji: "🌋", color: "from-red-500 to-orange-600" },
-  W: { word: "Whale",     emoji: "🐋", color: "from-blue-400 to-cyan-500" },
-  X: { word: "Xylophone", emoji: "🎵", color: "from-pink-400 to-rose-500" },
-  Y: { word: "Yarn",      emoji: "🧶", color: "from-pink-300 to-fuchsia-400" },
-  Z: { word: "Zebra",     emoji: "🦓", color: "from-gray-400 to-zinc-600" },
+  A: { word: "Athlete",    emoji: "🏅", color: "from-red-400 to-rose-500" },
+  B: { word: "Bradley",    emoji: "⭐", color: "from-blue-500 to-indigo-600" },
+  C: { word: "Champion",   emoji: "🏆", color: "from-yellow-400 to-orange-500" },
+  D: { word: "Dinosaur",   emoji: "🦕", color: "from-green-400 to-emerald-500" },
+  E: { word: "Elephant",   emoji: "🐘", color: "from-gray-400 to-slate-500" },
+  F: { word: "Football",   emoji: "🏈", color: "from-orange-500 to-amber-600" },
+  G: { word: "Golf",       emoji: "⛳", color: "from-green-500 to-teal-500" },
+  H: { word: "Hockey",     emoji: "🏒", color: "from-sky-400 to-blue-500" },
+  I: { word: "Ice Cream",  emoji: "🍦", color: "from-pink-300 to-rose-400" },
+  J: { word: "Jump",       emoji: "🦘", color: "from-lime-400 to-green-500" },
+  K: { word: "Kick",       emoji: "🦵", color: "from-red-400 to-orange-500" },
+  L: { word: "Logan",      emoji: "🤝", color: "from-purple-500 to-violet-600" },
+  M: { word: "Movies",     emoji: "🎬", color: "from-slate-500 to-zinc-600" },
+  N: { word: "Nellie",     emoji: "🐶", color: "from-amber-400 to-yellow-500" },
+  O: { word: "Outside",    emoji: "🌤️", color: "from-cyan-400 to-sky-500" },
+  P: { word: "Puzzles",    emoji: "🧩", color: "from-fuchsia-400 to-purple-500" },
+  Q: { word: "Quarterback",emoji: "🏈", color: "from-green-500 to-emerald-600" },
+  R: { word: "Race",       emoji: "🏎️", color: "from-red-500 to-rose-600" },
+  S: { word: "Spiderman",  emoji: "🕷️", color: "from-red-500 to-red-700" },
+  T: { word: "Trucks",     emoji: "🚛", color: "from-orange-400 to-red-500" },
+  U: { word: "Uniform",    emoji: "👕", color: "from-blue-400 to-indigo-500" },
+  V: { word: "Video Games",emoji: "🎮", color: "from-violet-500 to-purple-600" },
+  W: { word: "Win",        emoji: "🥇", color: "from-yellow-400 to-amber-500" },
+  X: { word: "X Factor",   emoji: "💥", color: "from-pink-500 to-rose-600" },
+  Y: { word: "Yard",       emoji: "🏡", color: "from-green-400 to-lime-500" },
+  Z: { word: "Zoom",       emoji: "💨", color: "from-blue-400 to-cyan-500" },
 };
 
 const ALL_LETTERS = Object.keys(LETTERS);
@@ -91,7 +91,13 @@ export default function AlphabetGame() {
     if (!remaining.has(letter)) return;
     setSelected(letter);
     const { word } = LETTERS[letter];
-    speak(`${letter}! ${letter} is for ${word}!`);
+    const special: Record<string, string> = {
+      B: "B! B is for Bradley — that's you!",
+      L: "L! L is for Logan — your brother!",
+      N: "N! N is for Nellie — your dog!",
+      S: "S! S is for Spiderman!",
+    };
+    speak(special[letter] ?? `${letter}! ${letter} is for ${word}!`);
   }
 
   function handleClose() {
@@ -219,7 +225,15 @@ export default function AlphabetGame() {
                 {selected} is for {data.word}
               </p>
               <button
-                onClick={() => speak(`${selected}! ${selected} is for ${data.word}!`)}
+                onClick={() => {
+                  const special: Record<string, string> = {
+                    B: "B! B is for Bradley — that's you!",
+                    L: "L! L is for Logan — your brother!",
+                    N: "N! N is for Nellie — your dog!",
+                    S: "S! S is for Spiderman!",
+                  };
+                  speak(special[selected] ?? `${selected}! ${selected} is for ${data.word}!`);
+                }}
                 className="mt-6 bg-white/20 hover:bg-white/30 rounded-full px-6 py-2 text-sm font-semibold transition-colors"
               >
                 🔊 Say it again
