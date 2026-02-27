@@ -9,13 +9,20 @@ const games = [
     description: "Tap a letter to learn its sound",
     color: "from-pink-500 to-rose-500",
   },
+  {
+    href: "/kids/hockey",
+    emoji: "🏒",
+    title: "Hockey",
+    description: "Score 5 goals to win!",
+    color: "from-sky-500 to-blue-600",
+  },
 ];
 
 const comingSoon = [
   { emoji: "🔢", title: "Counting", color: "from-blue-500 to-cyan-500" },
   { emoji: "🎨", title: "Colors & Shapes", color: "from-purple-500 to-pink-500" },
   { emoji: "🐶", title: "Animals", color: "from-green-500 to-teal-500" },
-  { emoji: "⚽", title: "Sports", color: "from-orange-500 to-yellow-500" },
+  { emoji: "🏈", title: "Football", color: "from-orange-500 to-yellow-500" },
 ];
 
 export default function KidsHub() {
