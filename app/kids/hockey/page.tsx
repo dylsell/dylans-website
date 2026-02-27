@@ -214,6 +214,18 @@ export default function HockeyGame() {
     }, 500);
   }, [shooting, won]);
 
+  // Spacebar shoots
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.code === "Space") {
+        e.preventDefault();
+        shoot();
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [shoot]);
+
   function reset() {
     setGoals(0); setResult(null); setShooting(false);
     setWon(false); setGoalFlash(false); setPuck(null);
