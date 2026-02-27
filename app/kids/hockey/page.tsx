@@ -5,37 +5,122 @@ import Nav from "../../components/Nav";
 import { useState, useRef, useEffect, useCallback } from "react";
 
 const GOALS_TO_WIN = 5;
-const NET_WIDTH = 80; // approximate px width of 🥅 at text-6xl
+const NET_WIDTH = 88;
 
-// Pixels per second — speeds up as goals increase
 function getSpeed(goals: number): number {
-  const speeds = [140, 170, 200, 230, 265];
-  return speeds[Math.min(goals, speeds.length - 1)];
+  return [130, 162, 198, 236, 278][Math.min(goals, 4)];
+}
+
+// ── Audio ──────────────────────────────────────────────────────────────────
+function getAudioCtx(): AudioContext | null {
+  try {
+    return new (window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext })
+        .webkitAudioContext)();
+  } catch {
+    return null;
+  }
+}
+
+function playGoalHorn() {
+  const ctx = getAudioCtx();
+  if (!ctx) return;
+  // Classic goal horn: sawtooth wave, rising pitch, sustain
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.type = "sawtooth";
+  osc.frequency.setValueAtTime(310, ctx.currentTime);
+  osc.frequency.linearRampToValueAtTime(460, ctx.currentTime + 0.45);
+  osc.frequency.setValueAtTime(460, ctx.currentTime + 0.45);
+  osc.frequency.linearRampToValueAtTime(440, ctx.currentTime + 1.1);
+  gain.gain.setValueAtTime(0.14, ctx.currentTime);
+  gain.gain.setValueAtTime(0.14, ctx.currentTime + 0.9);
+  gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 1.2);
+  osc.start();
+  osc.stop(ctx.currentTime + 1.2);
+}
+
+function playMissSound() {
+  const ctx = getAudioCtx();
+  if (!ctx) return;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.type = "sine";
+  osc.frequency.setValueAtTime(200, ctx.currentTime);
+  osc.frequency.linearRampToValueAtTime(90, ctx.currentTime + 0.22);
+  gain.gain.setValueAtTime(0.08, ctx.currentTime);
+  gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.22);
+  osc.start();
+  osc.stop(ctx.currentTime + 0.22);
 }
 
 function speakGoal() {
   if (typeof window === "undefined") return;
   window.speechSynthesis.cancel();
   const phrases = [
-    "Goal! Bradley scores!",
-    "Score! Great shot Bradley!",
-    "Yes! Goal!",
-    "He shoots, he scores!",
-    "Bradley scores again!",
+    "Goal! Bradley scores for Tampa Bay!",
+    "He shoots, he scores! Go Lightning!",
+    "Bradley Sellberg scores again! The crowd goes wild!",
+    "Tampa Bay Lightning goal!",
+    "What a shot Bradley! Lightning win!",
   ];
-  const text = phrases[Math.floor(Math.random() * phrases.length)];
-  const u = new SpeechSynthesisUtterance(text);
+  const u = new SpeechSynthesisUtterance(
+    phrases[Math.floor(Math.random() * phrases.length)]
+  );
   u.rate = 0.9;
   u.pitch = 1.2;
   window.speechSynthesis.speak(u);
 }
 
+// ── Player avatar with photo fallback ─────────────────────────────────────
+function PlayerAvatar({ size, className }: { size: number; className?: string }) {
+  const [err, setErr] = useState(false);
+  return (
+    <div
+      className={className}
+      style={{ width: size, height: size, borderRadius: "50%", overflow: "hidden", flexShrink: 0 }}
+    >
+      {err ? (
+        <div
+          style={{
+            width: size,
+            height: size,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: size * 0.55,
+            background: "#0A2D6B",
+          }}
+        >
+          🧍
+        </div>
+      ) : (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src="/bradley.jpg"
+          alt="Bradley"
+          width={size}
+          height={size}
+          style={{ objectFit: "cover", width: "100%", height: "100%" }}
+          onError={() => setErr(true)}
+        />
+      )}
+    </div>
+  );
+}
+
+// ── Main game ──────────────────────────────────────────────────────────────
 export default function HockeyGame() {
   const [goals, setGoals] = useState(0);
   const [shooting, setShooting] = useState(false);
   const [result, setResult] = useState<"goal" | "miss" | null>(null);
   const [won, setWon] = useState(false);
   const [netX, setNetX] = useState(0);
+  const [goalFlash, setGoalFlash] = useState(false);
 
   const gameRef = useRef<HTMLDivElement>(null);
   const dirRef = useRef(1);
@@ -44,16 +129,14 @@ export default function HockeyGame() {
   const lastTimeRef = useRef<number | null>(null);
   const goalsRef = useRef(0);
   const wonRef = useRef(false);
-
   goalsRef.current = goals;
   wonRef.current = won;
 
-  // Animation loop for the moving net
+  // Net animation loop
   useEffect(() => {
     function animate(time: number) {
       if (wonRef.current) return;
-
-      if (lastTimeRef.current === null) lastTimeRef.current = time;
+      if (!lastTimeRef.current) lastTimeRef.current = time;
       const dt = Math.min((time - lastTimeRef.current) / 1000, 0.05);
       lastTimeRef.current = time;
 
@@ -62,22 +145,13 @@ export default function HockeyGame() {
         const maxX = container.clientWidth - NET_WIDTH - 12;
         const speed = getSpeed(goalsRef.current);
         let nextX = netXRef.current + dirRef.current * speed * dt;
-
-        if (nextX >= maxX) {
-          nextX = maxX;
-          dirRef.current = -1;
-        } else if (nextX <= 8) {
-          nextX = 8;
-          dirRef.current = 1;
-        }
-
+        if (nextX >= maxX) { nextX = maxX; dirRef.current = -1; }
+        else if (nextX <= 8) { nextX = 8; dirRef.current = 1; }
         netXRef.current = nextX;
         setNetX(nextX);
       }
-
       frameRef.current = requestAnimationFrame(animate);
     }
-
     frameRef.current = requestAnimationFrame(animate);
     return () => {
       if (frameRef.current) cancelAnimationFrame(frameRef.current);
@@ -87,7 +161,6 @@ export default function HockeyGame() {
 
   const shoot = useCallback(() => {
     if (shooting || won) return;
-
     const game = gameRef.current;
     if (!game) return;
 
@@ -95,170 +168,368 @@ export default function HockeyGame() {
     const gameCenterX = gameRect.left + gameRect.width / 2;
     const netLeft = gameRect.left + netXRef.current;
     const netRight = netLeft + NET_WIDTH;
-
-    // Generous hit zone for a 4-year-old — just needs to be roughly lined up
-    const isGoal = gameCenterX >= netLeft - 24 && gameCenterX <= netRight + 24;
+    const isGoal = gameCenterX >= netLeft - 22 && gameCenterX <= netRight + 22;
 
     setShooting(true);
     setResult(null);
 
-    // After puck travels up, show result
     setTimeout(() => {
       const r = isGoal ? "goal" : "miss";
       setResult(r);
-
       if (isGoal) {
+        playGoalHorn();
         speakGoal();
+        setGoalFlash(true);
+        setTimeout(() => setGoalFlash(false), 900);
         setGoals((prev) => {
           const next = prev + 1;
-          if (next >= GOALS_TO_WIN) {
-            setTimeout(() => setWon(true), 1000);
-          }
+          if (next >= GOALS_TO_WIN) setTimeout(() => setWon(true), 1300);
           return next;
         });
+      } else {
+        playMissSound();
       }
-
-      setTimeout(() => {
-        setShooting(false);
-        setResult(null);
-      }, 950);
-    }, 480);
+      setTimeout(() => { setShooting(false); setResult(null); }, 980);
+    }, 470);
   }, [shooting, won]);
 
   function reset() {
-    setGoals(0);
-    setResult(null);
-    setShooting(false);
-    setWon(false);
-    netXRef.current = 0;
-    setNetX(0);
-    dirRef.current = 1;
-    lastTimeRef.current = null;
+    setGoals(0); setResult(null); setShooting(false);
+    setWon(false); setGoalFlash(false);
+    netXRef.current = 0; setNetX(0);
+    dirRef.current = 1; lastTimeRef.current = null;
   }
 
   return (
     <>
       <Nav />
-      <main className="min-h-screen bg-zinc-950 px-6 pt-28 pb-8 flex flex-col">
+      <main
+        className="min-h-screen px-4 pt-24 pb-6 flex flex-col"
+        style={{ background: "linear-gradient(180deg, #000E2F 0%, #002060 60%, #000E2F 100%)" }}
+      >
         <div className="max-w-lg mx-auto w-full flex flex-col flex-1">
           <Link
             href="/kids"
-            className="text-zinc-500 hover:text-white text-sm transition-colors mb-6"
+            className="text-blue-400 hover:text-white text-sm font-semibold transition-colors mb-4 inline-flex items-center gap-1"
           >
             ← Games
           </Link>
 
           {won ? (
-            /* Win screen */
-            <div className="text-center py-16">
-              <div className="text-8xl mb-4">🏆</div>
-              <h1 className="text-6xl font-black text-white mb-3">5 GOALS!</h1>
-              <p className="text-indigo-400 text-2xl font-bold mb-2">
-                Bradley wins!
+            /* ── WIN SCREEN ── */
+            <div className="flex flex-col items-center text-center py-10">
+              <div className="text-7xl mb-2">⚡</div>
+              <h1
+                className="text-7xl font-black mb-1 tracking-tight"
+                style={{ color: "#fff", textShadow: "0 0 40px #4488FF, 0 0 80px #2255CC" }}
+              >
+                GOAL!
+              </h1>
+              <p className="text-yellow-400 font-black text-2xl mb-6 tracking-widest">
+                LIGHTNING WIN!
               </p>
-              <p className="text-zinc-500 mb-10">He shoots, he scores!</p>
+
+              <div
+                className="mb-4"
+                style={{
+                  width: 120, height: 120, borderRadius: "50%",
+                  border: "4px solid #FFCC00",
+                  boxShadow: "0 0 30px rgba(255,200,0,0.5)",
+                  overflow: "hidden",
+                }}
+              >
+                <PlayerAvatar size={120} />
+              </div>
+
+              <p className="text-white font-black text-xl mb-1">Bradley Sellberg</p>
+              <p className="text-blue-300 mb-2">scored {GOALS_TO_WIN} goals!</p>
+              <div className="flex gap-1 mb-8">
+                {Array.from({ length: GOALS_TO_WIN }).map((_, i) => (
+                  <span key={i} className="text-yellow-400 text-xl">⚡</span>
+                ))}
+              </div>
+
               <button
                 onClick={reset}
-                className="bg-indigo-500 hover:bg-indigo-400 text-white font-bold text-xl px-10 py-4 rounded-2xl transition-colors"
+                className="font-black text-xl px-10 py-4 rounded-2xl transition-all active:scale-95"
+                style={{
+                  background: "linear-gradient(135deg, #FFCC00, #FFB300)",
+                  color: "#001040",
+                  boxShadow: "0 4px 24px rgba(255,200,0,0.4)",
+                }}
               >
-                Play again
+                Play Again ⚡
               </button>
             </div>
           ) : (
             <>
-              {/* Header */}
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <p className="text-indigo-400 text-xs font-semibold tracking-widest uppercase mb-1">
-                    Hockey
-                  </p>
-                  <h1 className="text-4xl font-black text-white leading-tight">
-                    Score the<br />Goal!
-                  </h1>
+              {/* ── SCOREBOARD ── */}
+              <div
+                className="rounded-2xl p-3 mb-3 flex items-center justify-between"
+                style={{
+                  background: "rgba(0,0,0,0.7)",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  backdropFilter: "blur(8px)",
+                }}
+              >
+                {/* Team */}
+                <div className="flex items-center gap-2">
+                  <span
+                    className="text-3xl"
+                    style={{ filter: "drop-shadow(0 0 8px #4499FF)" }}
+                  >
+                    ⚡
+                  </span>
+                  <div>
+                    <p className="text-yellow-400 font-black text-xs tracking-widest leading-none">
+                      TAMPA BAY
+                    </p>
+                    <p className="text-white font-black text-xs tracking-widest leading-none mt-0.5">
+                      LIGHTNING
+                    </p>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-zinc-500 text-sm mb-1">Goals</p>
-                  <p className="text-white font-black text-5xl leading-none">
+
+                {/* Score */}
+                <div className="text-center">
+                  <p className="text-zinc-600 text-xs font-bold tracking-widest mb-0.5">
+                    GOALS
+                  </p>
+                  <p
+                    className="font-black leading-none tabular-nums"
+                    style={{
+                      fontSize: 40,
+                      color: "#fff",
+                      fontVariantNumeric: "tabular-nums",
+                      textShadow: goals > 0 ? "0 0 20px rgba(68,153,255,0.8)" : "none",
+                    }}
+                  >
                     {goals}
-                    <span className="text-zinc-600 font-normal text-xl">
+                    <span style={{ color: "#333", fontSize: 20, fontWeight: 400 }}>
                       /{GOALS_TO_WIN}
                     </span>
                   </p>
-                  {goals > 0 && (
-                    <p className="text-indigo-400 text-xs mt-1 font-semibold">
-                      {goals >= 4 ? "🔥 Max speed!" : "Getting faster!"}
+                </div>
+
+                {/* Player */}
+                <div className="flex items-center gap-2">
+                  <div className="text-right">
+                    <p className="text-blue-300 font-black text-xs tracking-widest leading-none">
+                      BRADLEY
                     </p>
-                  )}
+                    <p className="text-white font-black text-xs tracking-widest leading-none mt-0.5">
+                      SELLBERG
+                    </p>
+                  </div>
+                  <div
+                    style={{
+                      width: 40, height: 40, borderRadius: "50%",
+                      border: "2px solid #4499FF",
+                      overflow: "hidden",
+                      boxShadow: "0 0 12px rgba(68,153,255,0.5)",
+                    }}
+                  >
+                    <PlayerAvatar size={40} />
+                  </div>
                 </div>
               </div>
 
-              {/* Game area */}
+              {/* ── RINK ── */}
               <div
                 ref={gameRef}
-                className="relative bg-zinc-900 rounded-3xl overflow-hidden select-none"
-                style={{ height: 340 }}
+                className="relative rounded-3xl overflow-hidden"
+                style={{
+                  minHeight: 310,
+                  flex: 1,
+                  background: "linear-gradient(180deg, #D6EFFA 0%, #E8F6FD 50%, #D6EFFA 100%)",
+                  boxShadow: goalFlash
+                    ? "0 0 0 4px #FF0000, 0 0 80px 20px rgba(255,0,0,0.6)"
+                    : "0 0 40px rgba(0,40,104,0.6), inset 0 0 60px rgba(180,220,240,0.3)",
+                  transition: "box-shadow 0.08s",
+                }}
               >
-                {/* Ice rink markings */}
-                <div className="absolute inset-0 pointer-events-none opacity-10">
-                  <div className="absolute top-1/2 left-0 right-0 h-px bg-blue-300" />
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 rounded-full border border-blue-300" />
-                  <div className="absolute top-0 left-1/2 bottom-0 w-px bg-blue-300" />
+                {/* Red light overlay on goal */}
+                {goalFlash && (
+                  <div
+                    className="absolute inset-0 z-20 pointer-events-none"
+                    style={{ background: "rgba(220,0,0,0.25)", animation: "pulse 0.15s ease-in-out" }}
+                  />
+                )}
+
+                {/* Ice markings */}
+                <div className="absolute inset-0 pointer-events-none">
+                  {/* Center red line */}
+                  <div
+                    className="absolute left-0 right-0"
+                    style={{ top: "50%", height: 2, background: "rgba(220,30,30,0.35)" }}
+                  />
+                  {/* Blue lines */}
+                  <div
+                    className="absolute left-0 right-0"
+                    style={{ top: "28%", height: 2, background: "rgba(30,100,220,0.3)" }}
+                  />
+                  <div
+                    className="absolute left-0 right-0"
+                    style={{ top: "72%", height: 2, background: "rgba(30,100,220,0.3)" }}
+                  />
+                  {/* Center circle */}
+                  <div
+                    className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full"
+                    style={{ width: 90, height: 90, border: "2px solid rgba(220,30,30,0.3)" }}
+                  />
+                  {/* Lightning at center */}
+                  <div
+                    className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-4xl select-none"
+                    style={{ opacity: 0.07 }}
+                  >
+                    ⚡
+                  </div>
+                  {/* Goal crease */}
+                  <div
+                    className="absolute rounded-b-full"
+                    style={{
+                      top: 72, left: "28%", width: "44%", height: 28,
+                      background: "rgba(30,100,220,0.12)",
+                      border: "2px solid rgba(220,30,30,0.35)",
+                    }}
+                  />
                 </div>
 
                 {/* Moving net */}
                 <div
-                  className="absolute top-4 text-6xl leading-none"
-                  style={{ left: netX, willChange: "transform" }}
+                  className="absolute top-3 text-6xl leading-none select-none"
+                  style={{
+                    left: netX,
+                    willChange: "transform",
+                    filter: "drop-shadow(0 3px 6px rgba(0,0,0,0.4))",
+                  }}
                 >
                   🥅
                 </div>
 
-                {/* Dashed aim line */}
-                <div className="absolute left-1/2 top-0 bottom-0 w-px border-l border-dashed border-white/10 pointer-events-none" />
+                {/* Aim dashes */}
+                <div
+                  className="absolute top-0 bottom-0 pointer-events-none"
+                  style={{
+                    left: "50%",
+                    width: 1,
+                    background: "repeating-linear-gradient(to bottom, rgba(0,0,0,0.08) 0px, rgba(0,0,0,0.08) 6px, transparent 6px, transparent 12px)",
+                  }}
+                />
 
                 {/* Puck */}
                 <div
-                  className="absolute left-1/2 -translate-x-1/2 text-2xl pointer-events-none"
+                  className="absolute left-1/2 -translate-x-1/2 pointer-events-none"
                   style={{
-                    bottom: shooting ? "82%" : "22%",
-                    transition: shooting ? "bottom 480ms ease-in" : "none",
+                    bottom: shooting ? "83%" : "20%",
+                    transition: shooting ? "bottom 470ms cubic-bezier(0.4,0,1,1)" : "none",
                     opacity: shooting || result ? 1 : 0,
+                    zIndex: 10,
                   }}
                 >
-                  ⚫
+                  <div
+                    style={{
+                      width: 20, height: 20,
+                      borderRadius: "50%",
+                      background: "radial-gradient(circle at 35% 35%, #555, #111)",
+                      border: "1.5px solid #333",
+                      boxShadow: "0 2px 6px rgba(0,0,0,0.5)",
+                    }}
+                  />
+                  {/* Puck trail */}
+                  {shooting && (
+                    <div
+                      style={{
+                        position: "absolute",
+                        top: "100%",
+                        left: "50%",
+                        transform: "translateX(-50%)",
+                        width: 3,
+                        height: 36,
+                        background: "linear-gradient(to bottom, rgba(180,220,255,0.6), transparent)",
+                        borderRadius: 2,
+                      }}
+                    />
+                  )}
                 </div>
 
                 {/* Result flash */}
                 {result && (
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+                  <div
+                    className="absolute inset-0 flex items-center justify-center pointer-events-none"
+                    style={{ zIndex: 30 }}
+                  >
                     <p
-                      className={`text-5xl font-black drop-shadow-xl ${
-                        result === "goal" ? "text-green-400" : "text-red-400"
-                      }`}
+                      className="font-black"
+                      style={{
+                        fontSize: 44,
+                        color: result === "goal" ? "#CC0000" : "#444",
+                        textShadow: result === "goal"
+                          ? "0 0 20px rgba(255,0,0,0.8), 2px 2px 0 rgba(0,0,0,0.2)"
+                          : "none",
+                        letterSpacing: "-0.02em",
+                      }}
                     >
-                      {result === "goal" ? "🚨 GOAL!" : "😬 Miss!"}
+                      {result === "goal" ? "🚨 GOAL!" : "❌ MISS!"}
                     </p>
                   </div>
                 )}
 
-                {/* Player */}
-                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-5xl">
-                  🧍
+                {/* Bradley player avatar */}
+                <div
+                  className="absolute bottom-4 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1"
+                  style={{ zIndex: 5 }}
+                >
+                  <div
+                    style={{
+                      width: 52, height: 52, borderRadius: "50%",
+                      border: "3px solid #002868",
+                      boxShadow: "0 4px 16px rgba(0,0,0,0.4)",
+                      overflow: "hidden",
+                    }}
+                  >
+                    <PlayerAvatar size={52} />
+                  </div>
+                  <span
+                    className="font-black text-xs tracking-wider"
+                    style={{ color: "#002868" }}
+                  >
+                    BRADLEY
+                  </span>
                 </div>
               </div>
 
-              {/* Shoot button */}
+              {/* ── SHOOT BUTTON ── */}
               <button
                 onClick={shoot}
                 disabled={shooting}
-                className="mt-4 w-full bg-indigo-500 hover:bg-indigo-400 disabled:opacity-40 disabled:cursor-not-allowed text-white font-black text-2xl py-6 rounded-2xl transition-all active:scale-95"
+                className="mt-3 w-full font-black text-2xl py-5 rounded-2xl transition-all active:scale-[0.97] tracking-wide select-none"
+                style={{
+                  background: shooting
+                    ? "rgba(0,10,30,0.8)"
+                    : "linear-gradient(135deg, #002868 0%, #0A3DBF 50%, #002868 100%)",
+                  color: shooting ? "#334" : "white",
+                  border: "2px solid rgba(100,160,255,0.2)",
+                  boxShadow: shooting ? "none" : "0 4px 24px rgba(10,60,200,0.5), 0 0 0 1px rgba(100,160,255,0.1)",
+                  letterSpacing: "0.05em",
+                }}
               >
-                {shooting ? "..." : "🏒  SHOOT!"}
+                {shooting ? "· · ·" : "⚡  SHOOT!"}
               </button>
 
-              <p className="text-center text-zinc-600 text-sm mt-3">
-                Time your shot — hit the net!
-              </p>
+              {/* Level indicator */}
+              <div className="flex items-center justify-center gap-2 mt-2 h-5">
+                {goals > 0 && (
+                  <>
+                    {Array.from({ length: goals }).map((_, i) => (
+                      <span key={i} className="text-yellow-400 text-sm">⚡</span>
+                    ))}
+                    <span className="text-blue-500 text-xs font-semibold tracking-widest">
+                      {goals >= 4 ? "MAX POWER" : "SPEED UP"}
+                    </span>
+                  </>
+                )}
+              </div>
             </>
           )}
         </div>
