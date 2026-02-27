@@ -67,7 +67,7 @@ export default function ProductLaunchTalks() {
             <div className="absolute left-[52px] top-0 bottom-0 w-px bg-gradient-to-b from-indigo-500/60 via-indigo-500/30 to-transparent" />
 
             <div className="flex flex-col gap-16">
-              {talks.map((talk, i) => (
+              {[...talks].reverse().map((talk, i) => (
                 <div key={talk.id} className="relative flex gap-8">
                   {/* Year badge */}
                   <div className="flex flex-col items-center shrink-0" style={{ width: 104 }}>
