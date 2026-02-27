@@ -8,7 +8,7 @@ const GOALS_TO_WIN = 5;
 const NET_WIDTH = 88;
 
 function getSpeed(goals: number): number {
-  return [130, 162, 198, 236, 278][Math.min(goals, 4)];
+  return [160, 195, 235, 275, 320][Math.min(goals, 4)];
 }
 
 // ── Audio ──────────────────────────────────────────────────────────────────
@@ -168,7 +168,7 @@ export default function HockeyGame() {
     const gameCenterX = gameRect.left + gameRect.width / 2;
     const netLeft = gameRect.left + netXRef.current;
     const netRight = netLeft + NET_WIDTH;
-    const isGoal = gameCenterX >= netLeft - 22 && gameCenterX <= netRight + 22;
+    const isGoal = gameCenterX >= netLeft - 10 && gameCenterX <= netRight + 10;
 
     setShooting(true);
     setResult(null);
@@ -190,7 +190,7 @@ export default function HockeyGame() {
         playMissSound();
       }
       setTimeout(() => { setShooting(false); setResult(null); }, 980);
-    }, 470);
+    }, 280);
   }, [shooting, won]);
 
   function reset() {
@@ -422,7 +422,7 @@ export default function HockeyGame() {
                   className="absolute left-1/2 -translate-x-1/2 pointer-events-none"
                   style={{
                     bottom: shooting ? "83%" : "20%",
-                    transition: shooting ? "bottom 470ms cubic-bezier(0.4,0,1,1)" : "none",
+                    transition: shooting ? "bottom 280ms cubic-bezier(0.4,0,1,1)" : "none",
                     opacity: shooting || result ? 1 : 0,
                     zIndex: 10,
                   }}
