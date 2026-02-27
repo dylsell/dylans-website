@@ -123,8 +123,8 @@ export default function HockeyGame() {
   const [won, setWon] = useState(false);
   const [playerX, setPlayerX] = useState(0);
   const [goalFlash, setGoalFlash] = useState(false);
-  // Puck: tracks where it starts (player pos) and ends (net center) for animation
-  const [puck, setPuck] = useState<{ fromX: number; toX: number } | null>(null);
+  // Puck: x = fixed horizontal position (straight shot), flying = animation trigger
+  const [puck, setPuck] = useState<{ x: number; flying: boolean; shotId: number } | null>(null);
 
   const gameRef = useRef<HTMLDivElement>(null);
   const dirRef = useRef(1);
@@ -163,25 +163,37 @@ export default function HockeyGame() {
     };
   }, [won]);
 
+  const shotIdRef = useRef(0);
+
+  // Two-frame trigger: place puck at player, then next RAF starts the flying animation
+  useEffect(() => {
+    if (!puck || puck.flying) return;
+    const id = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setPuck((p) => (p ? { ...p, flying: true } : null));
+      });
+    });
+    return () => cancelAnimationFrame(id);
+  }, [puck?.shotId]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const shoot = useCallback(() => {
     if (shooting || won) return;
     const game = gameRef.current;
     if (!game) return;
 
     const containerWidth = game.clientWidth;
-    // Player center X at moment of shot
     const playerCenterX = playerXRef.current + PLAYER_SIZE / 2;
-    // Net is fixed at center top
     const netLeft = containerWidth / 2 - NET_WIDTH / 2;
     const netRight = containerWidth / 2 + NET_WIDTH / 2;
-    const netCenterX = containerWidth / 2;
-
     const isGoal = playerCenterX >= netLeft - 10 && playerCenterX <= netRight + 10;
 
+    shotIdRef.current += 1;
     setShooting(true);
     setResult(null);
-    setPuck({ fromX: playerCenterX, toX: netCenterX });
+    // Puck travels straight up from player — x never changes
+    setPuck({ x: playerCenterX, flying: false, shotId: shotIdRef.current });
 
+    // Evaluate after puck has fully traveled (500ms matches the CSS transition)
     setTimeout(() => {
       const r = isGoal ? "goal" : "miss";
       setResult(r);
@@ -199,7 +211,7 @@ export default function HockeyGame() {
         playMissSound();
       }
       setTimeout(() => { setShooting(false); setResult(null); setPuck(null); }, 980);
-    }, 280);
+    }, 500);
   }, [shooting, won]);
 
   function reset() {
@@ -416,40 +428,44 @@ export default function HockeyGame() {
                   🥅
                 </div>
 
-                {/* Puck — travels from player toward net */}
+                {/* Puck — travels straight up from player's position */}
                 {puck && (
                   <div
                     className="pointer-events-none"
                     style={{
                       position: "absolute",
-                      left: shooting ? puck.toX : puck.fromX,
-                      bottom: shooting ? "83%" : "20%",
+                      // X is fixed — puck always goes straight up from where Bradley shot
+                      left: puck.x,
+                      // Flying: puck reaches just above the net at top of rink
+                      bottom: puck.flying ? "88%" : "22%",
                       transform: "translate(-50%, 50%)",
-                      transition: shooting
-                        ? "bottom 280ms cubic-bezier(0.4,0,1,1), left 280ms cubic-bezier(0.4,0,1,1)"
+                      transition: puck.flying
+                        ? "bottom 500ms cubic-bezier(0.1, 0, 0.4, 1)"
                         : "none",
                       zIndex: 10,
                     }}
                   >
+                    {/* Puck body */}
                     <div
                       style={{
-                        width: 20, height: 20,
+                        width: 22, height: 22,
                         borderRadius: "50%",
-                        background: "radial-gradient(circle at 35% 35%, #555, #111)",
-                        border: "1.5px solid #333",
-                        boxShadow: "0 2px 6px rgba(0,0,0,0.5)",
+                        background: "radial-gradient(circle at 35% 35%, #666, #0a0a0a)",
+                        border: "1.5px solid #444",
+                        boxShadow: "0 2px 8px rgba(0,0,0,0.7)",
                       }}
                     />
-                    {shooting && (
+                    {/* Motion trail — only while flying */}
+                    {puck.flying && (
                       <div
                         style={{
                           position: "absolute",
                           top: "100%",
                           left: "50%",
                           transform: "translateX(-50%)",
-                          width: 3,
-                          height: 32,
-                          background: "linear-gradient(to bottom, rgba(180,220,255,0.5), transparent)",
+                          width: 4,
+                          height: 50,
+                          background: "linear-gradient(to bottom, rgba(200,230,255,0.7), transparent)",
                           borderRadius: 2,
                         }}
                       />
