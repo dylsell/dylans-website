@@ -6,7 +6,9 @@ import { useState, useRef, useEffect, useCallback } from "react";
 
 const GOALS_TO_WIN = 5;
 const NET_WIDTH = 88;
+const PLAYER_SIZE = 52;
 
+// Player skating speed (px/s) — increases each goal
 function getSpeed(goals: number): number {
   return [160, 195, 235, 275, 320][Math.min(goals, 4)];
 }
@@ -119,12 +121,14 @@ export default function HockeyGame() {
   const [shooting, setShooting] = useState(false);
   const [result, setResult] = useState<"goal" | "miss" | null>(null);
   const [won, setWon] = useState(false);
-  const [netX, setNetX] = useState(0);
+  const [playerX, setPlayerX] = useState(0);
   const [goalFlash, setGoalFlash] = useState(false);
+  // Puck: tracks where it starts (player pos) and ends (net center) for animation
+  const [puck, setPuck] = useState<{ fromX: number; toX: number } | null>(null);
 
   const gameRef = useRef<HTMLDivElement>(null);
   const dirRef = useRef(1);
-  const netXRef = useRef(0);
+  const playerXRef = useRef(0);
   const frameRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number | null>(null);
   const goalsRef = useRef(0);
@@ -132,7 +136,7 @@ export default function HockeyGame() {
   goalsRef.current = goals;
   wonRef.current = won;
 
-  // Net animation loop
+  // Player skating animation loop
   useEffect(() => {
     function animate(time: number) {
       if (wonRef.current) return;
@@ -142,13 +146,13 @@ export default function HockeyGame() {
 
       const container = gameRef.current;
       if (container) {
-        const maxX = container.clientWidth - NET_WIDTH - 12;
+        const maxX = container.clientWidth - PLAYER_SIZE - 12;
         const speed = getSpeed(goalsRef.current);
-        let nextX = netXRef.current + dirRef.current * speed * dt;
+        let nextX = playerXRef.current + dirRef.current * speed * dt;
         if (nextX >= maxX) { nextX = maxX; dirRef.current = -1; }
         else if (nextX <= 8) { nextX = 8; dirRef.current = 1; }
-        netXRef.current = nextX;
-        setNetX(nextX);
+        playerXRef.current = nextX;
+        setPlayerX(nextX);
       }
       frameRef.current = requestAnimationFrame(animate);
     }
@@ -164,14 +168,19 @@ export default function HockeyGame() {
     const game = gameRef.current;
     if (!game) return;
 
-    const gameRect = game.getBoundingClientRect();
-    const gameCenterX = gameRect.left + gameRect.width / 2;
-    const netLeft = gameRect.left + netXRef.current;
-    const netRight = netLeft + NET_WIDTH;
-    const isGoal = gameCenterX >= netLeft - 10 && gameCenterX <= netRight + 10;
+    const containerWidth = game.clientWidth;
+    // Player center X at moment of shot
+    const playerCenterX = playerXRef.current + PLAYER_SIZE / 2;
+    // Net is fixed at center top
+    const netLeft = containerWidth / 2 - NET_WIDTH / 2;
+    const netRight = containerWidth / 2 + NET_WIDTH / 2;
+    const netCenterX = containerWidth / 2;
+
+    const isGoal = playerCenterX >= netLeft - 10 && playerCenterX <= netRight + 10;
 
     setShooting(true);
     setResult(null);
+    setPuck({ fromX: playerCenterX, toX: netCenterX });
 
     setTimeout(() => {
       const r = isGoal ? "goal" : "miss";
@@ -189,14 +198,14 @@ export default function HockeyGame() {
       } else {
         playMissSound();
       }
-      setTimeout(() => { setShooting(false); setResult(null); }, 980);
+      setTimeout(() => { setShooting(false); setResult(null); setPuck(null); }, 980);
     }, 280);
   }, [shooting, won]);
 
   function reset() {
     setGoals(0); setResult(null); setShooting(false);
-    setWon(false); setGoalFlash(false);
-    netXRef.current = 0; setNetX(0);
+    setWon(false); setGoalFlash(false); setPuck(null);
+    playerXRef.current = 0; setPlayerX(0);
     dirRef.current = 1; lastTimeRef.current = null;
   }
 
@@ -395,63 +404,58 @@ export default function HockeyGame() {
                   />
                 </div>
 
-                {/* Moving net */}
+                {/* Net — fixed center top */}
                 <div
                   className="absolute top-3 text-6xl leading-none select-none"
                   style={{
-                    left: netX,
-                    willChange: "transform",
+                    left: "50%",
+                    transform: "translateX(-50%)",
                     filter: "drop-shadow(0 3px 6px rgba(0,0,0,0.4))",
                   }}
                 >
                   🥅
                 </div>
 
-                {/* Aim dashes */}
-                <div
-                  className="absolute top-0 bottom-0 pointer-events-none"
-                  style={{
-                    left: "50%",
-                    width: 1,
-                    background: "repeating-linear-gradient(to bottom, rgba(0,0,0,0.08) 0px, rgba(0,0,0,0.08) 6px, transparent 6px, transparent 12px)",
-                  }}
-                />
-
-                {/* Puck */}
-                <div
-                  className="absolute left-1/2 -translate-x-1/2 pointer-events-none"
-                  style={{
-                    bottom: shooting ? "83%" : "20%",
-                    transition: shooting ? "bottom 280ms cubic-bezier(0.4,0,1,1)" : "none",
-                    opacity: shooting || result ? 1 : 0,
-                    zIndex: 10,
-                  }}
-                >
+                {/* Puck — travels from player toward net */}
+                {puck && (
                   <div
+                    className="pointer-events-none"
                     style={{
-                      width: 20, height: 20,
-                      borderRadius: "50%",
-                      background: "radial-gradient(circle at 35% 35%, #555, #111)",
-                      border: "1.5px solid #333",
-                      boxShadow: "0 2px 6px rgba(0,0,0,0.5)",
+                      position: "absolute",
+                      left: shooting ? puck.toX : puck.fromX,
+                      bottom: shooting ? "83%" : "20%",
+                      transform: "translate(-50%, 50%)",
+                      transition: shooting
+                        ? "bottom 280ms cubic-bezier(0.4,0,1,1), left 280ms cubic-bezier(0.4,0,1,1)"
+                        : "none",
+                      zIndex: 10,
                     }}
-                  />
-                  {/* Puck trail */}
-                  {shooting && (
+                  >
                     <div
                       style={{
-                        position: "absolute",
-                        top: "100%",
-                        left: "50%",
-                        transform: "translateX(-50%)",
-                        width: 3,
-                        height: 36,
-                        background: "linear-gradient(to bottom, rgba(180,220,255,0.6), transparent)",
-                        borderRadius: 2,
+                        width: 20, height: 20,
+                        borderRadius: "50%",
+                        background: "radial-gradient(circle at 35% 35%, #555, #111)",
+                        border: "1.5px solid #333",
+                        boxShadow: "0 2px 6px rgba(0,0,0,0.5)",
                       }}
                     />
-                  )}
-                </div>
+                    {shooting && (
+                      <div
+                        style={{
+                          position: "absolute",
+                          top: "100%",
+                          left: "50%",
+                          transform: "translateX(-50%)",
+                          width: 3,
+                          height: 32,
+                          background: "linear-gradient(to bottom, rgba(180,220,255,0.5), transparent)",
+                          borderRadius: 2,
+                        }}
+                      />
+                    )}
+                  </div>
+                )}
 
                 {/* Result flash */}
                 {result && (
@@ -475,20 +479,20 @@ export default function HockeyGame() {
                   </div>
                 )}
 
-                {/* Bradley player avatar */}
+                {/* Bradley — moves left and right */}
                 <div
-                  className="absolute bottom-4 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1"
-                  style={{ zIndex: 5 }}
+                  className="absolute bottom-4 flex flex-col items-center gap-1"
+                  style={{ left: playerX, width: PLAYER_SIZE, zIndex: 5, willChange: "left" }}
                 >
                   <div
                     style={{
-                      width: 52, height: 52, borderRadius: "50%",
+                      width: PLAYER_SIZE, height: PLAYER_SIZE, borderRadius: "50%",
                       border: "3px solid #002868",
                       boxShadow: "0 4px 16px rgba(0,0,0,0.4)",
                       overflow: "hidden",
                     }}
                   >
-                    <PlayerAvatar size={52} />
+                    <PlayerAvatar size={PLAYER_SIZE} />
                   </div>
                   <span
                     className="font-black text-xs tracking-wider"
