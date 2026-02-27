@@ -53,25 +53,6 @@ export default function Home() {
             </a>
           </div>
 
-          {/* Featured section */}
-          <div className="border-t border-zinc-800 pt-12 mb-16">
-            <p className="text-zinc-600 text-xs font-semibold tracking-widest uppercase mb-6">
-              Latest
-            </p>
-            <a
-              href="/kids"
-              className="group flex items-center justify-between p-6 rounded-2xl border border-zinc-800 hover:border-indigo-500/50 hover:bg-zinc-900 transition-all"
-            >
-              <div>
-                <p className="text-zinc-500 text-xs font-semibold tracking-widest uppercase mb-1">Apps</p>
-                <h2 className="text-white text-2xl font-bold group-hover:text-indigo-400 transition-colors">
-                  Kids Games
-                </h2>
-                <p className="text-zinc-500 mt-1">Educational microapps for my son</p>
-              </div>
-              <span className="text-zinc-600 group-hover:text-indigo-400 text-2xl transition-colors">→</span>
-            </a>
-          </div>
 
 
         </div>
