@@ -10,7 +10,7 @@ const talks = [
     location: "Boston, MA",
     label: "The AI Assistant Era Begins",
     description:
-      "Six months after ChatGPT changed everything, Dylan took the INBOUND stage to introduce ChatSpot — HubSpot's answer to what AI for business actually looks like. Not a generic chatbot, but a CRM-native assistant that could research prospects, generate content, pull analytics, and run sales outreach through natural language alone. The \"CRM Command Line\" demo stopped the room. This was the moment HubSpot planted its flag in the AI era.",
+      "Six months after ChatGPT reshaped the industry, I brought ChatSpot to INBOUND — our bet on what AI built for business, not consumers, should look like. The core idea was simple: your CRM already holds everything you know about your customers, so your AI should work from that context, not around it. We showed natural language access to CRM data, AI-assisted prospecting, and content generation grounded in real business signals. It was an early and deliberate stake in the ground.",
     tags: ["AI Assistant", "CRM", "Natural Language", "ChatGPT Era"],
   },
   {
@@ -21,7 +21,7 @@ const talks = [
     location: "Boston, MA",
     label: "Building the AI Platform",
     description:
-      "A year later, Dylan returned with something bigger: Breeze — HubSpot's unified AI platform built on three pillars. Copilot brought a context-aware AI companion into every corner of HubSpot, across browser and mobile. Breeze Agents introduced autonomous AI specialists for content, social, prospecting, and customer service. Breeze Intelligence unified data from 80+ sources to give businesses a real-time view of their customers. 80 AI capabilities. One platform. Zero excuses for not using AI.",
+      "A year in, it was clear that point solutions weren't enough. I led the product vision for Breeze — HubSpot's unified AI layer built on three foundations: Copilot for in-context assistance across every surface, Agents for autonomous end-to-end execution, and Intelligence to enrich customer data at scale. The goal was to collapse the gap between enterprise-grade AI capability and the speed a growing business actually needs. 80 AI features. One coherent platform.",
     tags: ["AI Platform", "Copilot", "Agents", "Data Intelligence"],
   },
   {
@@ -32,7 +32,7 @@ const talks = [
     location: "San Francisco, CA",
     label: "The Agentic Future",
     description:
-      "By 2025, the conversation had shifted from AI tools to AI teammates. Dylan's INBOUND 2025 session introduced 20+ Breeze Agents purpose-built to work alongside sales, marketing, and service teams — prospecting, researching, responding, and closing without waiting to be asked. Alongside the launch of Breeze Studio and the Agent Marketplace, this talk marked the transition from AI-assisted work to AI-driven workflows. The future of CRM isn't software you use. It's agents that work for you.",
+      "The shift from AI tools to AI teammates is the most significant change I've seen in enterprise software in a decade. At INBOUND 2025, I presented the next chapter: 20+ purpose-built Breeze Agents operating across sales, marketing, and service — not waiting to be prompted, but proactively executing work. We also launched Breeze Studio and the Agent Marketplace, opening the platform to builders. The question is no longer whether to adopt AI. It's whether your AI can actually get things done.",
     tags: ["AI Agents", "Agentic AI", "Automation", "Agent Marketplace"],
   },
 ];
@@ -57,8 +57,8 @@ export default function ProductLaunchTalks() {
             Product Launch Talks
           </h1>
           <p className="text-zinc-400 text-lg max-w-xl mb-16">
-            Three years on the INBOUND main stage, launching AI products that
-            defined how a generation of businesses adopted artificial intelligence.
+            Three consecutive years on the INBOUND main stage, leading the product
+            launches that shaped how HubSpot — and its customers — approached AI.
           </p>
 
           {/* Timeline */}
