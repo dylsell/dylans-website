@@ -16,6 +16,13 @@ const games = [
     description: "Score 5 goals to win!",
     color: "from-sky-500 to-blue-600",
   },
+  {
+    href: "/kids/forest-run",
+    emoji: "🌲",
+    title: "Forest Run",
+    description: "Help Bradley escape the bear!",
+    color: "from-green-600 to-emerald-700",
+  },
 ];
 
 const comingSoon = [
