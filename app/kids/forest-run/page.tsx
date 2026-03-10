@@ -36,6 +36,39 @@ function skyColor(score: number): [string, string] {
   return [SKY_STOPS[0][1], SKY_STOPS[0][2]];
 }
 
+function playRoar(ac: AudioContext) {
+  // Distortion waveshaper for growl
+  const shaper = ac.createWaveShaper();
+  const curve = new Float32Array(256);
+  for (let i = 0; i < 256; i++) {
+    const x = (i * 2) / 256 - 1;
+    curve[i] = (Math.PI + 400) * x / (Math.PI + 400 * Math.abs(x));
+  }
+  shaper.curve = curve;
+
+  // Main growl: sawtooth dropping in pitch
+  const osc1 = ac.createOscillator();
+  const gain1 = ac.createGain();
+  osc1.connect(shaper); shaper.connect(gain1); gain1.connect(ac.destination);
+  osc1.type = "sawtooth";
+  osc1.frequency.setValueAtTime(200, ac.currentTime);
+  osc1.frequency.exponentialRampToValueAtTime(55, ac.currentTime + 0.9);
+  gain1.gain.setValueAtTime(0.28, ac.currentTime);
+  gain1.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 1.1);
+  osc1.start(); osc1.stop(ac.currentTime + 1.1);
+
+  // Sub bass layer
+  const osc2 = ac.createOscillator();
+  const gain2 = ac.createGain();
+  osc2.connect(gain2); gain2.connect(ac.destination);
+  osc2.type = "sawtooth";
+  osc2.frequency.setValueAtTime(100, ac.currentTime);
+  osc2.frequency.exponentialRampToValueAtTime(28, ac.currentTime + 0.8);
+  gain2.gain.setValueAtTime(0.18, ac.currentTime);
+  gain2.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 1.0);
+  osc2.start(); osc2.stop(ac.currentTime + 1.0);
+}
+
 function rrect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
   ctx.beginPath();
   ctx.moveTo(x + r, y);
@@ -276,7 +309,7 @@ export default function ForestRun() {
             s.phase = "dead";
             s.flash = 12;
             if (s.score > s.best) s.best = s.score;
-            bloop.current(400, 0.5, "sawtooth", 0.2, 60);
+            if (audioCtx.current) playRoar(audioCtx.current);
             setPhase("dead"); setScore(s.score); setBest(s.best);
             break;
           }
@@ -315,8 +348,8 @@ export default function ForestRun() {
 
       // ── Bear (scales closer over time) ──────────────────────────────────
       if (s.phase === "running" || s.phase === "dead") {
-        const bearScale = Math.min(1, 0.4 + s.frame / 3000); // grows from 0.4x → 1x
-        const bearSize = Math.floor(44 * bearScale);
+        const bearScale = Math.min(1.3, 0.55 + s.frame / 2200); // grows from 0.55x → 1.3x
+        const bearSize = Math.floor(72 * bearScale);
         const bearBob = Math.sin(s.frame * 0.18) * 4 * bearScale;
         ctx.font = `${bearSize}px serif`;
         ctx.fillText("🐻", 10, GY - 4 + bearBob);
