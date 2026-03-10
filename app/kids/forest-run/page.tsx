@@ -3,14 +3,14 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import Nav from "../../components/Nav";
 
-const CW = 600;
-const CH = 300;
-const GY = 228;
-const BX = 95;
-const BW = 50;
-const BH = 76;
+const CW = 900;
+const CH = 450;
+const GY = 342;
+const BX = 143;
+const BW = 75;
+const BH = 114;
 const GRAV = 0.58;
-const JVEL = -13;
+const JVEL = -19;
 
 type Phase = "idle" | "running" | "dead";
 
@@ -85,22 +85,22 @@ function rrect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h
 
 function makeFarTrees(): FarTree[] {
   return Array.from({ length: 12 }, (_, i) => ({
-    x: i * (CW / 12) + Math.random() * 20,
-    h: 35 + Math.random() * 30,
+    x: i * (CW / 12) + Math.random() * 30,
+    h: 52 + Math.random() * 45,
   }));
 }
 function makeMidTrees(): MidTree[] {
   return Array.from({ length: 9 }, (_, i) => ({
-    x: i * (CW / 9) + Math.random() * 30,
-    h: 50 + Math.random() * 50,
+    x: i * (CW / 9) + Math.random() * 45,
+    h: 75 + Math.random() * 75,
     sp: 1.0 + Math.random() * 0.8,
   }));
 }
 function makeBushes(): Bush[] {
   return Array.from({ length: 7 }, (_, i) => ({
-    x: i * (CW / 7) + Math.random() * 40,
-    w: 20 + Math.random() * 30,
-    h: 12 + Math.random() * 10,
+    x: i * (CW / 7) + Math.random() * 60,
+    w: 30 + Math.random() * 45,
+    h: 18 + Math.random() * 15,
   }));
 }
 
@@ -198,7 +198,7 @@ export default function ForestRun() {
       s.farTrees.forEach(t => {
         if (s.phase === "running") {
           t.x -= 0.5;
-          if (t.x + t.h < 0) { t.x = CW + t.h; t.h = 35 + Math.random() * 30; }
+          if (t.x + t.h < 0) { t.x = CW + t.h; t.h = 52 + Math.random() * 45; }
         }
         const tw = t.h * 0.55;
         ctx.globalAlpha = 0.35;
@@ -213,7 +213,7 @@ export default function ForestRun() {
       s.midTrees.forEach(t => {
         if (s.phase === "running") {
           t.x -= t.sp * (s.speed / 4);
-          if (t.x + t.h < 0) { t.x = CW + t.h; t.h = 50 + Math.random() * 50; t.sp = 1.0 + Math.random() * 0.8; }
+          if (t.x + t.h < 0) { t.x = CW + t.h; t.h = 75 + Math.random() * 75; t.sp = 1.0 + Math.random() * 0.8; }
         }
         const tw = t.h * 0.65;
         ctx.fillStyle = "#7a4520";
@@ -232,7 +232,7 @@ export default function ForestRun() {
       s.bushes.forEach(b => {
         if (s.phase === "running") {
           b.x -= s.speed * 1.6;
-          if (b.x + b.w < 0) { b.x = CW + b.w; b.w = 20 + Math.random() * 30; b.h = 12 + Math.random() * 10; }
+          if (b.x + b.w < 0) { b.x = CW + b.w; b.w = 30 + Math.random() * 45; b.h = 18 + Math.random() * 15; }
         }
         ctx.fillStyle = "#2d5e12";
         ctx.beginPath(); ctx.ellipse(b.x + b.w / 2, GY - b.h / 2, b.w / 2, b.h / 2, 0, 0, Math.PI * 2); ctx.fill();
@@ -261,14 +261,14 @@ export default function ForestRun() {
         // Spawn logs
         s.nextLog--;
         if (s.nextLog <= 0) {
-          s.logs.push({ x: CW + 10, w: 28 + Math.random() * 14, h: 24 + Math.random() * 24 });
+          s.logs.push({ x: CW + 10, w: 42 + Math.random() * 21, h: 36 + Math.random() * 36 });
           s.nextLog = Math.max(50, 92 - s.frame / 80);
         }
 
         // Spawn coins
         s.nextCoin--;
         if (s.nextCoin <= 0) {
-          s.coins.push({ x: CW + 10, y: GY - 55 - Math.random() * 60, collected: false, animT: 0 });
+          s.coins.push({ x: CW + 10, y: GY - 82 - Math.random() * 90, collected: false, animT: 0 });
           s.nextCoin = 80 + Math.random() * 100;
         }
 
@@ -332,17 +332,17 @@ export default function ForestRun() {
       s.coins.forEach(c => {
         const floatY = c.y + Math.sin(c.animT) * 5;
         // Glow
-        const grd = ctx.createRadialGradient(c.x, floatY, 2, c.x, floatY, 14);
+        const grd = ctx.createRadialGradient(c.x, floatY, 3, c.x, floatY, 20);
         grd.addColorStop(0, "rgba(255,220,0,0.4)");
         grd.addColorStop(1, "rgba(255,180,0,0)");
-        ctx.fillStyle = grd; ctx.beginPath(); ctx.arc(c.x, floatY, 14, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = grd; ctx.beginPath(); ctx.arc(c.x, floatY, 20, 0, Math.PI * 2); ctx.fill();
         // Coin
         ctx.fillStyle = "#FFD700";
-        ctx.beginPath(); ctx.arc(c.x, floatY, 9, 0, Math.PI * 2); ctx.fill();
-        ctx.strokeStyle = "#FFA500"; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(c.x, floatY, 13, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = "#FFA500"; ctx.lineWidth = 2.5;
         ctx.stroke();
-        ctx.fillStyle = "#FFB300"; ctx.font = "bold 10px sans-serif"; ctx.textAlign = "center";
-        ctx.fillText("$", c.x, floatY + 3.5);
+        ctx.fillStyle = "#FFB300"; ctx.font = "bold 14px sans-serif"; ctx.textAlign = "center";
+        ctx.fillText("$", c.x, floatY + 5);
         ctx.textAlign = "left";
       });
 
@@ -376,17 +376,17 @@ export default function ForestRun() {
       // ── HUD ──────────────────────────────────────────────────────────────
       if (s.phase === "running") {
         ctx.fillStyle = "rgba(0,0,0,0.4)";
-        rrect(ctx, 10, 10, 116, 34, 8); ctx.fill();
-        ctx.fillStyle = "white"; ctx.font = "bold 15px system-ui, sans-serif"; ctx.textAlign = "left";
-        ctx.fillText(`🏃 ${s.score}m`, 20, 32);
+        rrect(ctx, 14, 14, 160, 46, 10); ctx.fill();
+        ctx.fillStyle = "white"; ctx.font = "bold 22px system-ui, sans-serif"; ctx.textAlign = "left";
+        ctx.fillText(`🏃 ${s.score}m`, 28, 46);
 
         // Milestone popup
         if (s.milestoneT > 0) {
           const alpha = Math.min(1, s.milestoneT / 20);
-          const yOff = (90 - s.milestoneT) * 0.4;
+          const yOff = (90 - s.milestoneT) * 0.6;
           ctx.globalAlpha = alpha;
-          ctx.fillStyle = "#FFD700"; ctx.font = "bold 26px system-ui, sans-serif"; ctx.textAlign = "center";
-          ctx.fillText(s.milestone, CW / 2, 55 - yOff);
+          ctx.fillStyle = "#FFD700"; ctx.font = "bold 38px system-ui, sans-serif"; ctx.textAlign = "center";
+          ctx.fillText(s.milestone, CW / 2, 82 - yOff);
           ctx.globalAlpha = 1; ctx.textAlign = "left";
         }
       }
@@ -402,14 +402,14 @@ export default function ForestRun() {
       if (s.phase === "idle") {
         ctx.fillStyle = "rgba(0,30,0,0.68)"; ctx.fillRect(0, 0, CW, CH);
         ctx.textAlign = "center";
-        ctx.fillStyle = "white"; ctx.font = "bold 28px system-ui, sans-serif";
-        ctx.fillText("🌲 Bradley's Forest Run! 🌲", CW / 2, 66);
-        ctx.fillStyle = "#b8f0b8"; ctx.font = "16px system-ui, sans-serif";
-        ctx.fillText("Jump over logs · collect coins · escape the bear!", CW / 2, 102);
+        ctx.fillStyle = "white"; ctx.font = "bold 42px system-ui, sans-serif";
+        ctx.fillText("🌲 Bradley's Forest Run! 🌲", CW / 2, 110);
+        ctx.fillStyle = "#b8f0b8"; ctx.font = "24px system-ui, sans-serif";
+        ctx.fillText("Jump over logs · collect coins · escape the bear!", CW / 2, 160);
         const pulse = 0.96 + Math.sin(Date.now() / 350) * 0.04;
-        ctx.save(); ctx.translate(CW / 2, 175); ctx.scale(pulse, pulse);
-        ctx.fillStyle = "#4ade80"; rrect(ctx, -90, -22, 180, 44, 14); ctx.fill();
-        ctx.fillStyle = "#14532d"; ctx.font = "bold 20px system-ui, sans-serif"; ctx.fillText("🌿 TAP TO START!", 0, 7);
+        ctx.save(); ctx.translate(CW / 2, 260); ctx.scale(pulse, pulse);
+        ctx.fillStyle = "#4ade80"; rrect(ctx, -130, -30, 260, 60, 18); ctx.fill();
+        ctx.fillStyle = "#14532d"; ctx.font = "bold 30px system-ui, sans-serif"; ctx.fillText("🌿 TAP TO START!", 0, 10);
         ctx.restore(); ctx.textAlign = "left";
       }
 
@@ -417,19 +417,19 @@ export default function ForestRun() {
       if (s.phase === "dead") {
         ctx.fillStyle = "rgba(50,0,0,0.75)"; ctx.fillRect(0, 0, CW, CH);
         ctx.textAlign = "center";
-        ctx.fillStyle = "#ff7070"; ctx.font = "bold 32px system-ui, sans-serif";
-        ctx.fillText("The bear got you! 🐻", CW / 2, 65);
-        ctx.fillStyle = "white"; ctx.font = "bold 24px system-ui, sans-serif";
-        ctx.fillText(`You ran ${s.score}m!`, CW / 2, 115);
+        ctx.fillStyle = "#ff7070"; ctx.font = "bold 48px system-ui, sans-serif";
+        ctx.fillText("The bear got you! 🐻", CW / 2, 110);
+        ctx.fillStyle = "white"; ctx.font = "bold 36px system-ui, sans-serif";
+        ctx.fillText(`You ran ${s.score}m!`, CW / 2, 175);
         if (s.best > 0) {
-          ctx.fillStyle = "#FFD700"; ctx.font = "18px system-ui, sans-serif";
-          ctx.fillText(`Best: ${s.best}m`, CW / 2, 150);
+          ctx.fillStyle = "#FFD700"; ctx.font = "27px system-ui, sans-serif";
+          ctx.fillText(`Best: ${s.best}m`, CW / 2, 225);
         }
         const pulse = 0.96 + Math.sin(Date.now() / 350) * 0.04;
-        ctx.save(); ctx.translate(CW / 2, 205); ctx.scale(pulse, pulse);
-        ctx.fillStyle = "#fb923c"; rrect(ctx, -100, -22, 200, 44, 12); ctx.fill();
-        ctx.fillStyle = "white"; ctx.font = "bold 19px system-ui, sans-serif";
-        ctx.fillText("🔄 TAP TO TRY AGAIN!", 0, 7);
+        ctx.save(); ctx.translate(CW / 2, 305); ctx.scale(pulse, pulse);
+        ctx.fillStyle = "#fb923c"; rrect(ctx, -140, -30, 280, 60, 16); ctx.fill();
+        ctx.fillStyle = "white"; ctx.font = "bold 28px system-ui, sans-serif";
+        ctx.fillText("🔄 TAP TO TRY AGAIN!", 0, 10);
         ctx.restore(); ctx.textAlign = "left";
       }
 
@@ -452,7 +452,7 @@ export default function ForestRun() {
     <>
       <Nav />
       <main className="min-h-screen bg-zinc-950 px-4 pt-28 pb-16 flex flex-col items-center">
-        <div className="w-full max-w-[600px]">
+        <div className="w-full max-w-[900px]">
           <p className="text-indigo-400 font-semibold tracking-widest uppercase text-sm mb-3">Kids Games</p>
           <h1 className="text-4xl font-black text-white mb-1">Bradley&apos;s Forest Run</h1>
           <p className="text-zinc-500 mb-6">Jump over logs · collect coins · escape the bear!</p>
