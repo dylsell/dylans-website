@@ -5,17 +5,17 @@ import Nav from "../../components/Nav";
 import { useState, useRef, useEffect, useCallback } from "react";
 
 const GOALS_TO_WIN = 5;
-const NET_WIDTH = 100;
-const NET_HEIGHT = 32;
-const PLAYER_SIZE = 52;
-const GOALIE_W = 38;
-const GOALIE_H = 34;
+const NET_WIDTH = 140;
+const NET_HEIGHT = 46;
+const PLAYER_SIZE = 72;
+const GOALIE_W = 52;
+const GOALIE_H = 48;
 
 function getPlayerSpeed(goals: number) {
-  return [155, 190, 230, 275, 325][Math.min(goals, 4)];
+  return [200, 245, 300, 355, 420][Math.min(goals, 4)];
 }
 function getGoalieSpeed(goals: number) {
-  return [55, 90, 130, 175, 230][Math.min(goals, 4)];
+  return [70, 115, 170, 225, 300][Math.min(goals, 4)];
 }
 
 // ── Audio ────────────────────────────────────────────────────────────────────
@@ -49,19 +49,35 @@ function playMiss(ac: AudioContext) {
   osc.start(); osc.stop(ac.currentTime + 0.25);
 }
 
-function speakGoal() {
+const GOAL_PHRASES = [
+  "Goal! Bradley scores for Tampa Bay!",
+  "He shoots, he scores! Go Lightning!",
+  "Bradley Sellberg scores again! The crowd goes wild!",
+  "Tampa Bay Lightning goal!",
+  "What a shot Bradley! Lightning win!",
+];
+
+async function speakGoal() {
   if (typeof window === "undefined") return;
-  window.speechSynthesis.cancel();
-  const phrases = [
-    "Goal! Bradley scores for Tampa Bay!",
-    "He shoots, he scores! Go Lightning!",
-    "Bradley Sellberg scores again! The crowd goes wild!",
-    "Tampa Bay Lightning goal!",
-    "What a shot Bradley! Lightning win!",
-  ];
-  const u = new SpeechSynthesisUtterance(phrases[Math.floor(Math.random() * phrases.length)]);
-  u.rate = 0.9; u.pitch = 1.2;
-  window.speechSynthesis.speak(u);
+  const text = GOAL_PHRASES[Math.floor(Math.random() * GOAL_PHRASES.length)];
+  try {
+    const res = await fetch("/api/speak", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text }),
+    });
+    if (!res.ok) throw new Error("no_key");
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+    audio.onended = () => URL.revokeObjectURL(url);
+    audio.play();
+  } catch {
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.rate = 0.9; u.pitch = 1.2;
+    window.speechSynthesis.speak(u);
+  }
 }
 
 // ── Goal particles ───────────────────────────────────────────────────────────
@@ -72,8 +88,8 @@ function GoalParticles({ origin }: { origin: { x: number; y: number } }) {
   const particles: Particle[] = Array.from({ length: 28 }, (_, i) => ({
     id: i,
     color: PARTICLE_COLORS[i % PARTICLE_COLORS.length],
-    tx: `${(Math.random() - 0.5) * 220}px`,
-    ty: `${-Math.random() * 180 - 30}px`,
+    tx: `${(Math.random() - 0.5) * 300}px`,
+    ty: `${-Math.random() * 240 - 40}px`,
     size: 6 + Math.random() * 10,
     dur: 0.5 + Math.random() * 0.5,
   }));
@@ -174,13 +190,13 @@ function HockeyNet({ flash }: { flash: boolean }) {
 
 // ── Crowd silhouettes ─────────────────────────────────────────────────────────
 function Crowd() {
-  const heads = Array.from({ length: 22 }, (_, i) => ({
-    x: i * (100 / 22),
-    size: 16 + Math.sin(i * 1.7) * 5,
+  const heads = Array.from({ length: 30 }, (_, i) => ({
+    x: i * (100 / 30),
+    size: 18 + Math.sin(i * 1.7) * 6,
     row: i % 3,
   }));
   return (
-    <div className="absolute top-0 left-0 right-0 pointer-events-none overflow-hidden" style={{ height: 54 }}>
+    <div className="absolute top-0 left-0 right-0 pointer-events-none overflow-hidden" style={{ height: 70 }}>
       {/* Crowd backdrop */}
       <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(0,8,30,0.95) 0%, transparent 100%)" }} />
       {heads.map((h, i) => (
@@ -348,7 +364,7 @@ export default function HockeyGame() {
         className="min-h-screen px-4 pt-24 pb-6 flex flex-col"
         style={{ background: "linear-gradient(180deg, #000E2F 0%, #002060 60%, #000E2F 100%)" }}
       >
-        <div className="max-w-lg mx-auto w-full flex flex-col flex-1">
+        <div className="max-w-2xl mx-auto w-full flex flex-col flex-1">
           <Link href="/kids" className="text-blue-400 hover:text-white text-sm font-semibold transition-colors mb-4 inline-flex items-center gap-1">
             ← Games
           </Link>
@@ -415,7 +431,7 @@ export default function HockeyGame() {
                 ref={gameRef}
                 className="relative rounded-3xl overflow-hidden"
                 style={{
-                  minHeight: 320, flex: 1,
+                  minHeight: 480, flex: 1,
                   background: "linear-gradient(180deg, #C8E8F8 0%, #E0F4FD 45%, #C8E8F8 100%)",
                   boxShadow: goalFlash
                     ? "0 0 0 4px #FF0000, 0 0 80px 20px rgba(255,0,0,0.5)"
@@ -436,21 +452,21 @@ export default function HockeyGame() {
                   <div className="absolute left-0 right-0" style={{ top: "30%", height: 2, background: "rgba(30,100,220,0.25)" }} />
                   <div className="absolute left-0 right-0" style={{ top: "72%", height: 2, background: "rgba(30,100,220,0.25)" }} />
                   <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full"
-                    style={{ width: 90, height: 90, border: "2px solid rgba(220,30,30,0.25)" }} />
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-4xl select-none" style={{ opacity: 0.06 }}>⚡</div>
+                    style={{ width: 120, height: 120, border: "2px solid rgba(220,30,30,0.25)" }} />
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-5xl select-none" style={{ opacity: 0.06 }}>⚡</div>
                   <div className="absolute rounded-b-full"
-                    style={{ top: 76, left: "26%", width: "48%", height: 30, background: "rgba(30,100,220,0.1)", border: "2px solid rgba(220,30,30,0.3)" }} />
+                    style={{ top: 100, left: "26%", width: "48%", height: 42, background: "rgba(30,100,220,0.1)", border: "2px solid rgba(220,30,30,0.3)" }} />
                 </div>
 
                 {/* Net — drawn with CSS */}
-                <div className="absolute flex flex-col items-center" style={{ top: 52, left: "50%", transform: "translateX(-50%)", zIndex: 5 }}>
+                <div className="absolute flex flex-col items-center" style={{ top: 72, left: "50%", transform: "translateX(-50%)", zIndex: 5 }}>
                   <HockeyNet flash={goalFlash} />
                 </div>
 
                 {/* Goalie */}
                 <div
                   className="absolute flex flex-col items-center"
-                  style={{ left: goalieX, top: 58, width: GOALIE_W, zIndex: 6, willChange: "left" }}
+                  style={{ left: goalieX, top: 78, width: GOALIE_W, zIndex: 6, willChange: "left" }}
                 >
                   <div style={{
                     width: GOALIE_W, height: GOALIE_H,
@@ -459,7 +475,7 @@ export default function HockeyGame() {
                     border: "2px solid #FFCC00",
                     boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: 20,
+                    fontSize: 28,
                   }}>
                     🧤
                   </div>
@@ -484,7 +500,7 @@ export default function HockeyGame() {
                     {puck.flying && (
                       <div style={{
                         position: "absolute", top: "100%", left: "50%", transform: "translateX(-50%)",
-                        width: 4, height: 50,
+                        width: 5, height: 70,
                         background: "linear-gradient(to bottom, rgba(200,230,255,0.7), transparent)",
                         borderRadius: 2,
                       }} />
@@ -496,7 +512,7 @@ export default function HockeyGame() {
                 {result && (
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ zIndex: 30 }}>
                     <p className="font-black" style={{
-                      fontSize: 44,
+                      fontSize: 62,
                       color: result === "goal" ? "#CC0000" : "#555",
                       textShadow: result === "goal" ? "0 0 20px rgba(255,0,0,0.8), 2px 2px 0 rgba(0,0,0,0.2)" : "none",
                       animation: "popIn 0.3s cubic-bezier(0.34,1.56,0.64,1) forwards",

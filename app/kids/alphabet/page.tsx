@@ -53,20 +53,49 @@ function getBestVoice(): SpeechSynthesisVoice | null {
   );
 }
 
-function speak(letter: string, word: string) {
+const SPECIAL_PHRASES: Record<string, string> = {
+  B: "B! B is for Bradley — that's you!",
+  L: "L! L is for Logan — your brother!",
+  N: "N! N is for Nellie — your dog!",
+  S: "S! S is for Spiderman!",
+};
+
+function speakFallback(text: string) {
   if (typeof window === "undefined") return;
   window.speechSynthesis.cancel();
-  const special: Record<string, string> = {
-    B: "B! B is for Bradley — that's you!",
-    L: "L! L is for Logan — your brother!",
-    N: "N! N is for Nellie — your dog!",
-    S: "S! S is for Spiderman!",
-  };
-  const u = new SpeechSynthesisUtterance(special[letter] ?? `${letter}! ${letter} is for ${word}!`);
+  const u = new SpeechSynthesisUtterance(text);
   u.rate = 0.82; u.pitch = 1.05; u.volume = 1;
-  const voice = getBestVoice();
-  if (voice) u.voice = voice;
-  window.speechSynthesis.speak(u);
+  // Wait for voices if not loaded yet
+  const trySpeak = () => {
+    const voice = getBestVoice();
+    if (voice) u.voice = voice;
+    window.speechSynthesis.speak(u);
+  };
+  if (window.speechSynthesis.getVoices().length) {
+    trySpeak();
+  } else {
+    window.speechSynthesis.addEventListener("voiceschanged", trySpeak, { once: true });
+  }
+}
+
+async function speak(letter: string, word: string) {
+  if (typeof window === "undefined") return;
+  const text = SPECIAL_PHRASES[letter] ?? `${letter}! ${letter} is for ${word}!`;
+  try {
+    const res = await fetch("/api/speak", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text }),
+    });
+    if (!res.ok) throw new Error("no_key");
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+    audio.onended = () => URL.revokeObjectURL(url);
+    audio.play();
+  } catch {
+    speakFallback(text);
+  }
 }
 
 function playPop(ac: AudioContext) {
@@ -198,7 +227,7 @@ export default function AlphabetGame() {
     <>
       <Nav />
       <main className="min-h-screen bg-zinc-950 px-6 pt-28 pb-16">
-        <div className="max-w-2xl mx-auto">
+        <div className="max-w-4xl mx-auto">
           <Link href="/kids" className="inline-flex items-center gap-2 text-zinc-500 hover:text-white text-sm transition-colors mb-8">
             ← Games
           </Link>
@@ -240,7 +269,7 @@ export default function AlphabetGame() {
               </div>
 
               {/* Glowing progress bar */}
-              <div className="h-3 bg-zinc-800 rounded-full overflow-hidden mb-4">
+              <div className="h-4 bg-zinc-800 rounded-full overflow-hidden mb-4">
                 <div
                   className="h-full rounded-full transition-all duration-500"
                   style={{
@@ -277,7 +306,7 @@ export default function AlphabetGame() {
                 {/* Dark overlay so remaining letters are readable */}
                 <div className="absolute inset-0 bg-zinc-950/20" />
 
-                <div className="relative z-10 grid grid-cols-6 gap-2 p-3 sm:gap-2.5 sm:p-4">
+                <div className="relative z-10 grid grid-cols-6 gap-3 p-4 sm:gap-4 sm:p-5">
                   {ALL_LETTERS.map((letter) => {
                     const isGone = !remaining.has(letter) && !exiting.has(letter);
                     const isExiting = exiting.has(letter);
@@ -290,7 +319,7 @@ export default function AlphabetGame() {
                           className="aspect-square rounded-xl flex items-center justify-center"
                           style={{ background: "rgba(255,255,255,0.08)" }}
                         >
-                          <span className="text-white/50 text-lg">✓</span>
+                          <span className="text-white/50 text-xl">✓</span>
                         </div>
                       );
                     }
@@ -299,7 +328,7 @@ export default function AlphabetGame() {
                       <button
                         key={letter}
                         onClick={() => handleLetterClick(letter)}
-                        className={`aspect-square rounded-xl bg-gradient-to-br ${LETTERS[letter].color} text-white font-black text-xl shadow-lg hover:scale-110 active:scale-95 transition-transform select-none`}
+                        className={`aspect-square rounded-xl bg-gradient-to-br ${LETTERS[letter].color} text-white font-black text-2xl shadow-lg hover:scale-110 active:scale-95 transition-transform select-none`}
                         style={isExiting ? { animation: "tileExit 0.42s cubic-bezier(0.55,0,1,0.45) forwards" } : undefined}
                       >
                         {letter}
@@ -319,7 +348,7 @@ export default function AlphabetGame() {
             onClick={handleClose}
           >
             <div
-              className={`bg-gradient-to-br ${data.color} rounded-3xl p-10 text-center text-white shadow-2xl max-w-xs w-full`}
+              className={`bg-gradient-to-br ${data.color} rounded-3xl p-12 text-center text-white shadow-2xl max-w-sm w-full`}
               style={{ animation: "popIn 0.38s cubic-bezier(0.34,1.56,0.64,1) forwards" }}
               onClick={(e) => e.stopPropagation()}
             >
