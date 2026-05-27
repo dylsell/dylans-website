@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import Nav from "../../components/Nav";
+import Nav from "../../../components/Nav";
 import { useState, useEffect, useRef } from "react";
 
 const LETTERS: Record<string, { word: string; emoji: string; color: string }> = {
@@ -228,7 +228,7 @@ export default function AlphabetGame() {
       <Nav />
       <main className="min-h-screen bg-zinc-950 px-6 pt-28 pb-16">
         <div className="max-w-4xl mx-auto">
-          <Link href="/kids" className="inline-flex items-center gap-2 text-zinc-500 hover:text-white text-sm transition-colors mb-8">
+          <Link href="/personal/kids" className="inline-flex items-center gap-2 text-zinc-500 hover:text-white text-sm transition-colors mb-8">
             ← Games
           </Link>
 

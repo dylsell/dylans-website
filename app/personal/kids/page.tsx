@@ -1,23 +1,23 @@
 import Link from "next/link";
-import Nav from "../components/Nav";
+import Nav from "../../components/Nav";
 
 const games = [
   {
-    href: "/kids/alphabet",
+    href: "/personal/kids/alphabet",
     emoji: "🔤",
     title: "Alphabet",
     description: "Tap a letter to learn its sound",
     color: "from-pink-500 to-rose-500",
   },
   {
-    href: "/kids/hockey",
+    href: "/personal/kids/hockey",
     emoji: "🏒",
     title: "Hockey",
     description: "Score 5 goals to win!",
     color: "from-sky-500 to-blue-600",
   },
   {
-    href: "/kids/forest-run",
+    href: "/personal/kids/forest-run",
     emoji: "🌲",
     title: "Forest Run",
     description: "Help Bradley escape the bear!",

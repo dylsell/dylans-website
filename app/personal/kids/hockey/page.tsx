@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import Nav from "../../components/Nav";
+import Nav from "../../../components/Nav";
 import { useState, useRef, useEffect, useCallback } from "react";
 
 const GOALS_TO_WIN = 5;
@@ -365,7 +365,7 @@ export default function HockeyGame() {
         style={{ background: "linear-gradient(180deg, #000E2F 0%, #002060 60%, #000E2F 100%)" }}
       >
         <div className="max-w-2xl mx-auto w-full flex flex-col flex-1">
-          <Link href="/kids" className="text-blue-400 hover:text-white text-sm font-semibold transition-colors mb-4 inline-flex items-center gap-1">
+          <Link href="/personal/kids" className="text-blue-400 hover:text-white text-sm font-semibold transition-colors mb-4 inline-flex items-center gap-1">
             ← Games
           </Link>
 

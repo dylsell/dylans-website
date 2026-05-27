@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import Nav from "../../components/Nav";
+import Nav from "../../../components/Nav";
 
 const CW = 900;
 const CH = 450;
