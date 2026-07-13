@@ -35,6 +35,27 @@ const LETTERS: Record<string, { word: string; emoji: string; color: string }> = 
 
 const ALL_LETTERS = Object.keys(LETTERS);
 
+// Letter sounds for phonics — spelled so TTS pronounces them like the sound
+const PHONICS: Record<string, string> = {
+  A: "ah", B: "buh", C: "kuh", D: "duh", E: "eh", F: "fff", G: "guh",
+  H: "huh", I: "ih", J: "juh", K: "kuh", L: "lll", M: "mmm", N: "nnn",
+  O: "aw", P: "puh", Q: "kwuh", R: "rrr", S: "sss", T: "tuh", U: "uh",
+  V: "vvv", W: "wuh", X: "ks", Y: "yuh", Z: "zzz",
+};
+
+const SPECIAL_WORDS: Record<string, string> = {
+  B: "B is for Bradley — that's you!",
+  L: "L is for Logan — your brother!",
+  N: "N is for Nellie — your dog!",
+  S: "S is for Spiderman!",
+};
+
+const PRAISE = ["Yes!", "Great job!", "You got it!", "Awesome!", "Way to go, Bradley!"];
+
+function wordPhrase(letter: string) {
+  return SPECIAL_WORDS[letter] ?? `${letter} is for ${LETTERS[letter].word}!`;
+}
+
 const VOICE_PRIORITY = [
   "Google US English", "Samantha (Premium)", "Alex (Premium)", "Ava (Premium)",
   "Samantha (Enhanced)", "Ava (Enhanced)", "Samantha", "Google UK English Female",
@@ -52,13 +73,6 @@ function getBestVoice(): SpeechSynthesisVoice | null {
     voices.find((v) => v.lang.startsWith("en")) ?? null
   );
 }
-
-const SPECIAL_PHRASES: Record<string, string> = {
-  B: "B! B is for Bradley — that's you!",
-  L: "L! L is for Logan — your brother!",
-  N: "N! N is for Nellie — your dog!",
-  S: "S! S is for Spiderman!",
-};
 
 function speakFallback(text: string) {
   if (typeof window === "undefined") return;
@@ -78,9 +92,17 @@ function speakFallback(text: string) {
   }
 }
 
-async function speak(letter: string, word: string) {
+// One audio element at a time so phrases never talk over each other
+let currentAudio: HTMLAudioElement | null = null;
+
+function stopSpeech() {
+  if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+  if (typeof window !== "undefined") window.speechSynthesis.cancel();
+}
+
+async function speakText(text: string) {
   if (typeof window === "undefined") return;
-  const text = SPECIAL_PHRASES[letter] ?? `${letter}! ${letter} is for ${word}!`;
+  stopSpeech();
   try {
     const res = await fetch("/api/speak", {
       method: "POST",
@@ -91,11 +113,16 @@ async function speak(letter: string, word: string) {
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
     const audio = new Audio(url);
-    audio.onended = () => URL.revokeObjectURL(url);
+    currentAudio = audio;
+    audio.onended = () => { URL.revokeObjectURL(url); if (currentAudio === audio) currentAudio = null; };
     audio.play();
   } catch {
     speakFallback(text);
   }
+}
+
+function learnPhrase(letter: string) {
+  return `${letter}! ${letter} says ${PHONICS[letter]}. ${wordPhrase(letter)}`;
 }
 
 function playPop(ac: AudioContext) {
@@ -123,6 +150,19 @@ function playClear(ac: AudioContext) {
     osc.start(ac.currentTime + delay);
     osc.stop(ac.currentTime + delay + 0.18);
   });
+}
+
+function playOops(ac: AudioContext) {
+  // Gentle "try again" — soft descending wobble, nothing scary
+  const osc = ac.createOscillator();
+  const gain = ac.createGain();
+  osc.connect(gain); gain.connect(ac.destination);
+  osc.type = "triangle";
+  osc.frequency.setValueAtTime(300, ac.currentTime);
+  osc.frequency.linearRampToValueAtTime(220, ac.currentTime + 0.18);
+  gain.gain.setValueAtTime(0.1, ac.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.2);
+  osc.start(); osc.stop(ac.currentTime + 0.2);
 }
 
 const CONFETTI_COLORS = ["#ff6b6b","#ffd93d","#6bcb77","#4d96ff","#ff6bcd","#fff","#ff9f43"];
@@ -155,14 +195,20 @@ function Confetti() {
   );
 }
 
+type Mode = "learn" | "find";
+
 export default function AlphabetGame() {
+  const [mode, setMode] = useState<Mode>("learn");
   const [remaining, setRemaining] = useState<Set<string>>(new Set(ALL_LETTERS));
   const [exiting, setExiting] = useState<Set<string>>(new Set());
   const [selected, setSelected] = useState<string | null>(null);
+  const [target, setTarget] = useState<string | null>(null);
+  const [wrong, setWrong] = useState<string | null>(null);
   const [streak, setStreak] = useState(0);
   const [showStreak, setShowStreak] = useState(false);
   const audioRef = useRef<AudioContext | null>(null);
   const streakTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const wrongTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const cleared = ALL_LETTERS.length - remaining.size;
   const done = remaining.size === 0;
@@ -173,21 +219,7 @@ export default function AlphabetGame() {
     return audioRef.current;
   }
 
-  function handleLetterClick(letter: string) {
-    if (!remaining.has(letter) || exiting.has(letter) || selected) return;
-    playPop(getAudio());
-    setSelected(letter);
-    speak(letter, LETTERS[letter].word);
-  }
-
-  function handleClose() {
-    if (!selected) return;
-    window.speechSynthesis.cancel();
-    playClear(getAudio());
-    const letter = selected;
-    setSelected(null);
-
-    // Streak logic
+  function bumpStreak() {
     const newStreak = streak + 1;
     setStreak(newStreak);
     if (newStreak >= 3) {
@@ -195,8 +227,9 @@ export default function AlphabetGame() {
       if (streakTimerRef.current) clearTimeout(streakTimerRef.current);
       streakTimerRef.current = setTimeout(() => setShowStreak(false), 1800);
     }
+  }
 
-    // Animate tile out, then remove
+  function clearTile(letter: string) {
     setExiting(prev => new Set([...prev, letter]));
     setTimeout(() => {
       setRemaining(prev => { const n = new Set(prev); n.delete(letter); return n; });
@@ -204,12 +237,85 @@ export default function AlphabetGame() {
     }, 420);
   }
 
+  function pickTarget(pool: string[]): string | null {
+    if (!pool.length) return null;
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+
+  function handleLetterClick(letter: string) {
+    if (!remaining.has(letter) || exiting.has(letter)) return;
+
+    if (mode === "learn") {
+      if (selected) return;
+      playPop(getAudio());
+      setSelected(letter);
+      speakText(learnPhrase(letter));
+      return;
+    }
+
+    // ── Find It! mode ──
+    if (!target) return;
+    if (letter === target) {
+      playClear(getAudio());
+      bumpStreak();
+      clearTile(letter);
+      const pool = [...remaining].filter(l => l !== letter && !exiting.has(l));
+      const next = pickTarget(pool);
+      setTarget(next);
+      const praise = PRAISE[Math.floor(Math.random() * PRAISE.length)];
+      if (next) {
+        speakText(`${praise} ${letter}! ${wordPhrase(letter)} Now, can you find the letter ${next}?`);
+      } else {
+        speakText(`${praise} ${letter}! You found every single letter!`);
+      }
+    } else {
+      playOops(getAudio());
+      setStreak(0);
+      setWrong(letter);
+      if (wrongTimerRef.current) clearTimeout(wrongTimerRef.current);
+      wrongTimerRef.current = setTimeout(() => setWrong(null), 600);
+      speakText(`That's the letter ${letter}. Can you find the letter ${target}?`);
+    }
+  }
+
+  function handleClose() {
+    if (!selected) return;
+    stopSpeech();
+    playClear(getAudio());
+    const letter = selected;
+    setSelected(null);
+    bumpStreak();
+    clearTile(letter);
+  }
+
+  function switchMode(m: Mode) {
+    if (m === mode) return;
+    stopSpeech();
+    setMode(m);
+    setSelected(null);
+    setWrong(null);
+    if (m === "find") {
+      const t = pickTarget([...remaining].filter(l => !exiting.has(l)));
+      setTarget(t);
+      if (t) speakText(`Can you find the letter ${t}?`);
+    } else {
+      setTarget(null);
+    }
+  }
+
   function handleReset() {
+    stopSpeech();
     setRemaining(new Set(ALL_LETTERS));
     setSelected(null);
     setExiting(new Set());
     setStreak(0);
     setShowStreak(false);
+    setWrong(null);
+    if (mode === "find") {
+      const t = pickTarget(ALL_LETTERS);
+      setTarget(t);
+      if (t) speakText(`Can you find the letter ${t}?`);
+    }
   }
 
   useEffect(() => {
@@ -221,7 +327,10 @@ export default function AlphabetGame() {
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selected, remaining]);
+  }, [selected, remaining, mode, target, streak]);
+
+  // Stop any speech when leaving the page
+  useEffect(() => () => stopSpeech(), []);
 
   return (
     <>
@@ -280,8 +389,56 @@ export default function AlphabetGame() {
                 />
               </div>
 
+              {/* Mode toggle */}
+              <div className="flex gap-2 mb-4">
+                <button
+                  onClick={() => switchMode("learn")}
+                  className={`flex-1 py-3 rounded-2xl font-black text-lg transition-all active:scale-95 ${
+                    mode === "learn"
+                      ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/30"
+                      : "bg-zinc-900 text-zinc-500 hover:text-zinc-300 border border-zinc-800"
+                  }`}
+                >
+                  👀 Learn
+                </button>
+                <button
+                  onClick={() => switchMode("find")}
+                  className={`flex-1 py-3 rounded-2xl font-black text-lg transition-all active:scale-95 ${
+                    mode === "find"
+                      ? "bg-pink-500 text-white shadow-lg shadow-pink-500/30"
+                      : "bg-zinc-900 text-zinc-500 hover:text-zinc-300 border border-zinc-800"
+                  }`}
+                >
+                  🎯 Find It!
+                </button>
+              </div>
+
+              {/* Find-mode prompt bar */}
+              {mode === "find" && target && (
+                <div className="flex items-center justify-between rounded-2xl bg-zinc-900 border border-pink-500/30 px-5 py-3 mb-4">
+                  <div className="flex items-center gap-4">
+                    <span className="text-zinc-400 font-semibold">Find the letter</span>
+                    <span
+                      key={target}
+                      className="text-5xl font-black text-white"
+                      style={{ animation: "popIn 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards" }}
+                    >
+                      {target}
+                      <span className="text-pink-400 text-3xl ml-2">{target.toLowerCase()}</span>
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => speakText(`Can you find the letter ${target}?`)}
+                    className="bg-pink-500/20 hover:bg-pink-500/35 text-pink-300 rounded-full w-12 h-12 text-xl transition-colors"
+                    aria-label="Hear it again"
+                  >
+                    🔊
+                  </button>
+                </div>
+              )}
+
               {/* Streak popup */}
-              {showStreak && streak >= 3 && (
+              {showStreak && streak >= 3 ? (
                 <div className="text-center h-10 mb-2">
                   <span
                     className="inline-block text-xl font-black text-yellow-400"
@@ -290,10 +447,15 @@ export default function AlphabetGame() {
                     🔥 {streak} in a row!
                   </span>
                 </div>
+              ) : (
+                <div className="h-10 mb-2 flex items-center justify-center">
+                  <p className="text-zinc-500 text-sm">
+                    {mode === "learn"
+                      ? "Tap a letter to hear its sound — clear them all to reveal the secret photo!"
+                      : "Listen and tap the right letter!"}
+                  </p>
+                </div>
               )}
-              {!showStreak && <div className="h-10 mb-2" />}
-
-              <p className="text-zinc-500 mb-4 text-sm">Tap a letter — clear them all to reveal the secret photo!</p>
 
               {/* Photo-reveal letter grid */}
               <div className="relative rounded-3xl overflow-hidden shadow-2xl">
@@ -310,6 +472,7 @@ export default function AlphabetGame() {
                   {ALL_LETTERS.map((letter) => {
                     const isGone = !remaining.has(letter) && !exiting.has(letter);
                     const isExiting = exiting.has(letter);
+                    const isWrong = wrong === letter;
 
                     if (isGone) {
                       // Transparent slot — photo shows through
@@ -328,10 +491,17 @@ export default function AlphabetGame() {
                       <button
                         key={letter}
                         onClick={() => handleLetterClick(letter)}
-                        className={`aspect-square rounded-xl bg-gradient-to-br ${LETTERS[letter].color} text-white font-black text-2xl shadow-lg hover:scale-110 active:scale-95 transition-transform select-none`}
-                        style={isExiting ? { animation: "tileExit 0.42s cubic-bezier(0.55,0,1,0.45) forwards" } : undefined}
+                        className={`aspect-square rounded-xl bg-gradient-to-br ${LETTERS[letter].color} text-white shadow-lg hover:scale-110 active:scale-95 transition-transform select-none flex items-baseline justify-center gap-0.5 pt-2`}
+                        style={
+                          isExiting
+                            ? { animation: "tileExit 0.42s cubic-bezier(0.55,0,1,0.45) forwards" }
+                            : isWrong
+                            ? { animation: "wiggle 0.5s ease" }
+                            : undefined
+                        }
                       >
-                        {letter}
+                        <span className="font-black text-2xl leading-none self-center">{letter}</span>
+                        <span className="font-bold text-lg leading-none self-center opacity-70">{letter.toLowerCase()}</span>
                       </button>
                     );
                   })}
@@ -341,7 +511,7 @@ export default function AlphabetGame() {
           )}
         </div>
 
-        {/* Spring popup overlay */}
+        {/* Spring popup overlay (Learn mode) */}
         {selected && data && (
           <div
             className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-6 z-50"
@@ -353,11 +523,14 @@ export default function AlphabetGame() {
               onClick={(e) => e.stopPropagation()}
             >
               <div className="text-9xl mb-4">{data.emoji}</div>
-              <div className="text-8xl font-black mb-2 drop-shadow-lg">{selected}</div>
+              <div className="text-8xl font-black mb-2 drop-shadow-lg">
+                {selected}
+                <span className="text-6xl font-bold opacity-70 ml-3">{selected.toLowerCase()}</span>
+              </div>
               <div className="text-3xl font-bold">{data.word}</div>
-              <p className="text-white/70 text-sm mt-2">{selected} is for {data.word}</p>
+              <p className="text-white/70 text-sm mt-2">{selected} says &ldquo;{PHONICS[selected]}&rdquo; · {selected} is for {data.word}</p>
               <button
-                onClick={() => speak(selected, data.word)}
+                onClick={() => speakText(learnPhrase(selected))}
                 className="mt-6 bg-white/20 hover:bg-white/30 rounded-full px-6 py-2 text-sm font-semibold transition-colors"
               >
                 🔊 Say it again
