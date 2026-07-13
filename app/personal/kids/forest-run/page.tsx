@@ -11,6 +11,8 @@ const BW = 75;
 const BH = 114;
 const GRAV = 0.58;
 const JVEL = -19;
+const POWER_FRAMES = 420; // ~7s of star power
+const SPIN_FRAMES = 28;   // double-jump front flip duration
 
 type Phase = "idle" | "running" | "dead";
 
@@ -19,6 +21,9 @@ interface Coin { x: number; y: number; collected: boolean; animT: number }
 interface FarTree  { x: number; h: number }
 interface MidTree  { x: number; h: number; sp: number }
 interface Bush     { x: number; w: number; h: number }
+interface Cloud    { x: number; y: number; w: number; sp: number }
+interface StarPU   { x: number; y: number; animT: number }
+interface Fleck    { x: number; y: number; vx: number; vy: number; life: number; maxLife: number; size: number; color: string }
 
 // Sky colors: dawn → morning → day → sunset, keyed by score milestone
 const SKY_STOPS: [number, string, string][] = [
@@ -103,8 +108,24 @@ function makeBushes(): Bush[] {
     h: 18 + Math.random() * 15,
   }));
 }
+function makeClouds(): Cloud[] {
+  return Array.from({ length: 4 }, (_, i) => ({
+    x: i * (CW / 4) + Math.random() * 80,
+    y: 30 + Math.random() * 70,
+    w: 70 + Math.random() * 60,
+    sp: 0.15 + Math.random() * 0.25,
+  }));
+}
+function makeNightStars() {
+  return Array.from({ length: 30 }, () => ({
+    x: Math.random() * CW,
+    y: Math.random() * 180,
+    r: 0.8 + Math.random() * 1.4,
+  }));
+}
 
 const MILESTONES = [50, 100, 200, 300, 500, 750, 1000];
+const BEST_KEY = "forest-run-best";
 
 export default function ForestRun() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -112,7 +133,6 @@ export default function ForestRun() {
   const bradleyImg = useRef<HTMLImageElement | null>(null);
   const audioCtx = useRef<AudioContext | null>(null);
   const [phase, setPhase] = useState<Phase>("idle");
-  const [score, setScore] = useState(0);
   const [best, setBest] = useState(0);
 
   const bloop = useRef((freq: number, dur: number, type: OscillatorType = "sine", vol = 0.12, freqEnd?: number) => {
@@ -133,42 +153,67 @@ export default function ForestRun() {
   const gs = useRef({
     phase: "idle" as Phase,
     by: GY - BH, vy: 0, grounded: true,
+    jumps: 0,          // jumps used since last landing (max 2)
+    spinT: 0,          // double-jump flip countdown
     logs: [] as Log[],
     coins: [] as Coin[],
     farTrees: makeFarTrees(),
     midTrees: makeMidTrees(),
     bushes: makeBushes(),
-    frame: 0, speed: 4, score: 0, best: 0,
+    clouds: makeClouds(),
+    nightStars: makeNightStars(),
+    flecks: [] as Fleck[],       // dust + smash particles
+    starPU: null as StarPU | null,
+    nextStar: 700,
+    power: 0,          // star-power frames remaining
+    frame: 0, speed: 4, score: 0, best: 0, coinsRun: 0,
     nextLog: 90, nextCoin: 120,
     flash: 0,         // death flash countdown
     milestone: "",    // text to show
     milestoneT: 0,    // countdown
     passedMilestones: new Set<number>(),
+    bearLunge: 0,     // death pounce animation frames
+    deathAt: 0,       // so mashing jump doesn't instantly restart
   });
 
   const act = useCallback(() => {
     if (!audioCtx.current) audioCtx.current = new AudioContext();
     const s = gs.current;
-    if (s.phase === "idle") {
+
+    const startRun = () => {
       Object.assign(s, {
         phase: "running",
-        by: GY - BH, vy: 0, grounded: true,
-        logs: [], coins: [],
+        by: GY - BH, vy: 0, grounded: true, jumps: 0, spinT: 0,
+        logs: [], coins: [], flecks: [],
         farTrees: makeFarTrees(), midTrees: makeMidTrees(), bushes: makeBushes(),
-        frame: 0, speed: 4, score: 0,
+        starPU: null, nextStar: 700, power: 0,
+        frame: 0, speed: 4, score: 0, coinsRun: 0,
         nextLog: 90, nextCoin: 120,
         flash: 0, milestone: "", milestoneT: 0,
         passedMilestones: new Set<number>(),
+        bearLunge: 0,
       });
       setPhase("running");
       bloop.current(300, 0.12, "sine", 0.15, 500);
-    } else if (s.phase === "running" && s.grounded) {
-      s.vy = JVEL;
-      s.grounded = false;
-      bloop.current(280, 0.14, "sine", 0.18, 560);
-    } else if (s.phase === "dead") {
-      s.phase = "idle";
-      setPhase("idle");
+    };
+
+    if (s.phase === "idle") {
+      startRun();
+    } else if (s.phase === "running") {
+      if (s.grounded) {
+        s.vy = JVEL;
+        s.grounded = false;
+        s.jumps = 1;
+        bloop.current(280, 0.14, "sine", 0.18, 560);
+      } else if (s.jumps < 2) {
+        // Double jump — with a front flip!
+        s.vy = JVEL * 0.85;
+        s.jumps = 2;
+        s.spinT = SPIN_FRAMES;
+        bloop.current(420, 0.14, "sine", 0.18, 840);
+      }
+    } else if (s.phase === "dead" && Date.now() - s.deathAt > 600) {
+      startRun();
     }
   }, []);
 
@@ -176,11 +221,20 @@ export default function ForestRun() {
     const img = new Image();
     img.src = "/bradley/hoodie.png";
     img.onload = () => { bradleyImg.current = img; };
+    // Best score persists across visits
+    const b = Number(localStorage.getItem(BEST_KEY) || 0);
+    if (b > 0) { gs.current.best = b; setBest(b); }
   }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current!;
     const ctx = canvas.getContext("2d")!;
+
+    // Crisp rendering on retina screens
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = CW * dpr;
+    canvas.height = CH * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
     const loop = () => {
       const s = gs.current;
@@ -193,6 +247,30 @@ export default function ForestRun() {
       skyG.addColorStop(1, skyBot);
       ctx.fillStyle = skyG;
       ctx.fillRect(0, 0, CW, GY);
+
+      // ── Night stars fade in at dusk ─────────────────────────────────────
+      const nightAlpha = Math.min(1, Math.max(0, (s.score - 550) / 200));
+      if (nightAlpha > 0) {
+        s.nightStars.forEach((st, i) => {
+          const twinkle = 0.45 + 0.55 * Math.abs(Math.sin(s.frame * 0.04 + i * 1.7));
+          ctx.fillStyle = `rgba(255,255,240,${(nightAlpha * twinkle).toFixed(2)})`;
+          ctx.beginPath(); ctx.arc(st.x, st.y, st.r, 0, Math.PI * 2); ctx.fill();
+        });
+      }
+
+      // ── Clouds drift slowly ─────────────────────────────────────────────
+      s.clouds.forEach(c => {
+        if (s.phase === "running") {
+          c.x -= c.sp * (s.speed / 4);
+          if (c.x + c.w < 0) { c.x = CW + c.w; c.y = 30 + Math.random() * 70; }
+        }
+        ctx.globalAlpha = 0.75 * (1 - nightAlpha * 0.65);
+        ctx.fillStyle = "#ffffff";
+        ctx.beginPath(); ctx.ellipse(c.x, c.y, c.w / 2, c.w / 6, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(c.x - c.w * 0.25, c.y + 4, c.w / 3.2, c.w / 8, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(c.x + c.w * 0.28, c.y + 3, c.w / 3.5, c.w / 8.5, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 1;
+      });
 
       // ── Layer 1: far trees (very slow) ──────────────────────────────────
       s.farTrees.forEach(t => {
@@ -243,8 +321,9 @@ export default function ForestRun() {
       // ── Game logic ───────────────────────────────────────────────────────
       if (s.phase === "running") {
         s.frame++;
-        s.score = Math.floor(s.frame / 6);
+        s.score = Math.floor(s.frame / 6) + s.coinsRun * 10;
         s.speed = 4 + s.frame / 500;
+        if (s.power > 0) s.power--;
 
         // Milestone check
         for (const m of MILESTONES) {
@@ -272,6 +351,18 @@ export default function ForestRun() {
           s.nextCoin = 80 + Math.random() * 100;
         }
 
+        // Spawn star power-up every ~15-25 seconds
+        if (!s.starPU) {
+          s.nextStar--;
+          if (s.nextStar <= 0) {
+            s.starPU = { x: CW + 20, y: GY - 110 - Math.random() * 70, animT: 0 };
+          }
+        } else {
+          s.starPU.x -= s.speed;
+          s.starPU.animT += 0.1;
+          if (s.starPU.x < -30) { s.starPU = null; s.nextStar = 900 + Math.random() * 600; }
+        }
+
         // Move logs
         s.logs = s.logs.map(l => ({ ...l, x: l.x - s.speed })).filter(l => l.x + l.w > 0);
 
@@ -282,7 +373,28 @@ export default function ForestRun() {
         // Physics
         s.vy += GRAV;
         s.by += s.vy;
-        if (s.by >= GY - BH) { s.by = GY - BH; s.vy = 0; s.grounded = true; }
+        if (s.by >= GY - BH) {
+          if (!s.grounded) {
+            // Landing puff
+            for (let i = 0; i < 4; i++) {
+              s.flecks.push({
+                x: BX + 10 + Math.random() * (BW - 20), y: GY - 3,
+                vx: (Math.random() - 0.5) * 3, vy: -0.5 - Math.random(),
+                life: 14, maxLife: 14, size: 3 + Math.random() * 3, color: "150,130,90",
+              });
+            }
+          }
+          s.by = GY - BH; s.vy = 0; s.grounded = true; s.jumps = 0; s.spinT = 0;
+        }
+
+        // Running dust
+        if (s.grounded && s.frame % 7 === 0) {
+          s.flecks.push({
+            x: BX + 6 + Math.random() * 10, y: GY - 2,
+            vx: -1.5 - Math.random() * 1.5, vy: -0.4 - Math.random() * 0.8,
+            life: 16, maxLife: 16, size: 2.5 + Math.random() * 3, color: "150,130,90",
+          });
+        }
 
         // Footsteps
         if (s.grounded && s.frame % 21 === 0) {
@@ -294,29 +406,66 @@ export default function ForestRun() {
         s.coins.forEach(c => {
           if (!c.collected && Math.abs(bcX - c.x) < BW * 0.7 && Math.abs(bcY - c.y) < BH * 0.6) {
             c.collected = true;
-            s.score += 10;
-            s.frame += 60; // bonus meters
+            s.coinsRun++;
             bloop.current(880, 0.05, "sine", 0.18, 1200);
             setTimeout(() => bloop.current(1200, 0.08, "sine", 0.15), 60);
           }
         });
         s.coins = s.coins.filter(c => !c.collected);
 
-        // Log collision (generous hitbox)
-        const bL = BX + 9, bR = BX + BW - 9, bB = s.by + BH - 8;
-        for (const l of s.logs) {
-          if (bR > l.x + 5 && bL < l.x + l.w - 5 && bB > GY - l.h + 4) {
-            s.phase = "dead";
-            s.flash = 12;
-            if (s.score > s.best) s.best = s.score;
-            if (audioCtx.current) playRoar(audioCtx.current);
-            setPhase("dead"); setScore(s.score); setBest(s.best);
-            break;
-          }
+        // Star power-up collision
+        if (s.starPU && Math.abs(bcX - s.starPU.x) < BW * 0.75 && Math.abs(bcY - s.starPU.y) < BH * 0.65) {
+          s.starPU = null;
+          s.nextStar = 1100 + Math.random() * 700;
+          s.power = POWER_FRAMES;
+          // Rising fanfare
+          [523, 659, 784, 1047].forEach((f, i) =>
+            setTimeout(() => bloop.current(f, 0.14, "square", 0.1), i * 90));
         }
 
-        if (s.frame % 8 === 0) setScore(s.score);
+        // Log collision — star power smashes right through!
+        const bL = BX + 9, bR = BX + BW - 9, bB = s.by + BH - 8;
+        const smashed = new Set<Log>();
+        for (const l of s.logs) {
+          if (bR > l.x + 5 && bL < l.x + l.w - 5 && bB > GY - l.h + 4) {
+            if (s.power > 0) {
+              smashed.add(l);
+              s.score += 5;
+              for (let i = 0; i < 12; i++) {
+                s.flecks.push({
+                  x: l.x + Math.random() * l.w, y: GY - Math.random() * l.h,
+                  vx: (Math.random() - 0.2) * 7, vy: -2 - Math.random() * 4,
+                  life: 24, maxLife: 24, size: 3 + Math.random() * 5, color: "160,85,37",
+                });
+              }
+              bloop.current(120, 0.16, "square", 0.16, 60);
+            } else {
+              s.phase = "dead";
+              s.flash = 12;
+              s.bearLunge = 0;
+              s.deathAt = Date.now();
+              if (s.score > s.best) {
+                s.best = s.score;
+                localStorage.setItem(BEST_KEY, String(s.best));
+              }
+              if (audioCtx.current) playRoar(audioCtx.current);
+              setPhase("dead"); setBest(s.best);
+              break;
+            }
+          }
+        }
+        if (smashed.size) s.logs = s.logs.filter(l => !smashed.has(l));
+
       }
+
+      // ── Particles (dust, smash debris) — animate in every phase ─────────
+      s.flecks = s.flecks.filter(p => {
+        p.x += p.vx; p.y += p.vy; p.vy += 0.18; p.life--;
+        if (p.life <= 0) return false;
+        ctx.fillStyle = `rgba(${p.color},${(p.life / p.maxLife).toFixed(2)})`;
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
+        return true;
+      });
 
       // ── Draw logs ────────────────────────────────────────────────────────
       s.logs.forEach(l => {
@@ -346,22 +495,48 @@ export default function ForestRun() {
         ctx.textAlign = "left";
       });
 
-      // ── Bear (scales closer over time) ──────────────────────────────────
-      if (s.phase === "running" || s.phase === "dead") {
+      // ── Draw star power-up ───────────────────────────────────────────────
+      if (s.starPU) {
+        const sy = s.starPU.y + Math.sin(s.starPU.animT) * 6;
+        const grd = ctx.createRadialGradient(s.starPU.x, sy, 4, s.starPU.x, sy, 30);
+        grd.addColorStop(0, "rgba(255,240,80,0.55)");
+        grd.addColorStop(1, "rgba(255,200,0,0)");
+        ctx.fillStyle = grd; ctx.beginPath(); ctx.arc(s.starPU.x, sy, 30, 0, Math.PI * 2); ctx.fill();
+        ctx.font = "34px serif"; ctx.textAlign = "center";
+        ctx.fillText("⭐", s.starPU.x, sy + 12);
+        ctx.textAlign = "left";
+      }
+
+      // ── Bear (chases; pounces when he catches you) ──────────────────────
+      const drawBear = (x: number, size: number, bob: number) => {
+        ctx.font = `${size}px serif`;
+        ctx.fillText("🐻", x, GY - 4 + bob);
+      };
+      if (s.phase === "running") {
         const bearScale = Math.min(1.3, 0.55 + s.frame / 2200); // grows from 0.55x → 1.3x
-        const bearSize = Math.floor(72 * bearScale);
-        const bearBob = Math.sin(s.frame * 0.18) * 4 * bearScale;
-        ctx.font = `${bearSize}px serif`;
-        ctx.fillText("🐻", 10, GY - 4 + bearBob);
+        drawBear(10, Math.floor(72 * bearScale), Math.sin(s.frame * 0.18) * 4 * bearScale);
       }
 
       // ── Bradley shadow ───────────────────────────────────────────────────
       ctx.fillStyle = "rgba(0,0,0,0.15)";
       ctx.beginPath(); ctx.ellipse(BX + BW / 2, GY + 5, BW * 0.45, 5, 0, 0, Math.PI * 2); ctx.fill();
 
-      // ── Bradley sprite ───────────────────────────────────────────────────
-      const bob = s.phase === "running" ? Math.sin(s.frame * 0.3) * 2.5 : 0;
+      // ── Bradley sprite (flips on double jump, glows with star power) ────
+      const bob = s.phase === "running" && s.grounded ? Math.sin(s.frame * 0.3) * 2.5 : 0;
       const by = s.by + bob;
+      ctx.save();
+      if (s.spinT > 0) {
+        s.spinT--;
+        const ang = (1 - s.spinT / SPIN_FRAMES) * Math.PI * 2;
+        ctx.translate(BX + BW / 2, by + BH / 2);
+        ctx.rotate(ang);
+        ctx.translate(-(BX + BW / 2), -(by + BH / 2));
+      }
+      const powerBlink = s.power > 0 && (s.power > 90 || s.frame % 10 < 5);
+      if (powerBlink) {
+        ctx.shadowColor = `hsl(${(s.frame * 9) % 360}, 95%, 60%)`;
+        ctx.shadowBlur = 22;
+      }
       ctx.save();
       rrect(ctx, BX, by, BW, BH, 8); ctx.clip();
       if (bradleyImg.current) {
@@ -370,15 +545,38 @@ export default function ForestRun() {
         ctx.fillStyle = "#f9c784"; ctx.fillRect(BX, by, BW, BH);
       }
       ctx.restore();
-      ctx.strokeStyle = "rgba(255,255,255,0.85)"; ctx.lineWidth = 2;
+      ctx.strokeStyle = powerBlink
+        ? `hsl(${(s.frame * 9) % 360}, 95%, 62%)`
+        : "rgba(255,255,255,0.85)";
+      ctx.lineWidth = powerBlink ? 4 : 2;
       rrect(ctx, BX, by, BW, BH, 8); ctx.stroke();
+      ctx.restore();
+
+      // Bear pounce — drawn over Bradley after death
+      if (s.phase === "dead") {
+        if (s.bearLunge < 26) s.bearLunge++;
+        const t = s.bearLunge / 26;
+        const ease = 1 - (1 - t) * (1 - t);
+        const bearX = 10 + ease * (BX - 40);
+        const hop = Math.sin(t * Math.PI) * -46;
+        drawBear(bearX, 92, hop);
+      }
 
       // ── HUD ──────────────────────────────────────────────────────────────
       if (s.phase === "running") {
         ctx.fillStyle = "rgba(0,0,0,0.4)";
-        rrect(ctx, 14, 14, 160, 46, 10); ctx.fill();
+        rrect(ctx, 14, 14, 244, 46, 10); ctx.fill();
         ctx.fillStyle = "white"; ctx.font = "bold 22px system-ui, sans-serif"; ctx.textAlign = "left";
         ctx.fillText(`🏃 ${s.score}m`, 28, 46);
+        ctx.fillText(`🪙 ${s.coinsRun}`, 168, 46);
+
+        // Star-power countdown bar
+        if (s.power > 0) {
+          ctx.fillStyle = "rgba(0,0,0,0.4)";
+          rrect(ctx, 14, 66, 160, 10, 5); ctx.fill();
+          ctx.fillStyle = `hsl(${(s.frame * 9) % 360}, 95%, 58%)`;
+          rrect(ctx, 16, 68, 156 * (s.power / POWER_FRAMES), 6, 3); ctx.fill();
+        }
 
         // Milestone popup
         if (s.milestoneT > 0) {
@@ -403,11 +601,15 @@ export default function ForestRun() {
         ctx.fillStyle = "rgba(0,30,0,0.68)"; ctx.fillRect(0, 0, CW, CH);
         ctx.textAlign = "center";
         ctx.fillStyle = "white"; ctx.font = "bold 42px system-ui, sans-serif";
-        ctx.fillText("🌲 Bradley's Forest Run! 🌲", CW / 2, 110);
-        ctx.fillStyle = "#b8f0b8"; ctx.font = "24px system-ui, sans-serif";
-        ctx.fillText("Jump over logs · collect coins · escape the bear!", CW / 2, 160);
+        ctx.fillText("🌲 Bradley's Forest Run! 🌲", CW / 2, 100);
+        ctx.fillStyle = "#b8f0b8"; ctx.font = "22px system-ui, sans-serif";
+        ctx.fillText("Jump logs · double-jump in the air · grab the ⭐ to smash!", CW / 2, 150);
+        if (gs.current.best > 0) {
+          ctx.fillStyle = "#FFD700"; ctx.font = "bold 24px system-ui, sans-serif";
+          ctx.fillText(`🏆 Best: ${gs.current.best}m`, CW / 2, 192);
+        }
         const pulse = 0.96 + Math.sin(Date.now() / 350) * 0.04;
-        ctx.save(); ctx.translate(CW / 2, 260); ctx.scale(pulse, pulse);
+        ctx.save(); ctx.translate(CW / 2, 270); ctx.scale(pulse, pulse);
         ctx.fillStyle = "#4ade80"; rrect(ctx, -130, -30, 260, 60, 18); ctx.fill();
         ctx.fillStyle = "#14532d"; ctx.font = "bold 30px system-ui, sans-serif"; ctx.fillText("🌿 TAP TO START!", 0, 10);
         ctx.restore(); ctx.textAlign = "left";
@@ -418,15 +620,19 @@ export default function ForestRun() {
         ctx.fillStyle = "rgba(50,0,0,0.75)"; ctx.fillRect(0, 0, CW, CH);
         ctx.textAlign = "center";
         ctx.fillStyle = "#ff7070"; ctx.font = "bold 48px system-ui, sans-serif";
-        ctx.fillText("The bear got you! 🐻", CW / 2, 110);
+        ctx.fillText("The bear got you! 🐻", CW / 2, 105);
         ctx.fillStyle = "white"; ctx.font = "bold 36px system-ui, sans-serif";
-        ctx.fillText(`You ran ${s.score}m!`, CW / 2, 175);
-        if (s.best > 0) {
-          ctx.fillStyle = "#FFD700"; ctx.font = "27px system-ui, sans-serif";
-          ctx.fillText(`Best: ${s.best}m`, CW / 2, 225);
+        ctx.fillText(`You ran ${s.score}m!`, CW / 2, 165);
+        ctx.fillStyle = "#FFD700"; ctx.font = "26px system-ui, sans-serif";
+        const bits = [`🪙 ${s.coinsRun} coins`];
+        if (s.best > 0) bits.push(`🏆 Best: ${s.best}m`);
+        ctx.fillText(bits.join("   ·   "), CW / 2, 215);
+        if (s.score >= s.best && s.best > 0 && s.score > 0) {
+          ctx.fillStyle = "#7CFC9A"; ctx.font = "bold 24px system-ui, sans-serif";
+          ctx.fillText("🌟 NEW BEST! 🌟", CW / 2, 255);
         }
         const pulse = 0.96 + Math.sin(Date.now() / 350) * 0.04;
-        ctx.save(); ctx.translate(CW / 2, 305); ctx.scale(pulse, pulse);
+        ctx.save(); ctx.translate(CW / 2, 315); ctx.scale(pulse, pulse);
         ctx.fillStyle = "#fb923c"; rrect(ctx, -140, -30, 280, 60, 16); ctx.fill();
         ctx.fillStyle = "white"; ctx.font = "bold 28px system-ui, sans-serif";
         ctx.fillText("🔄 TAP TO TRY AGAIN!", 0, 10);
@@ -453,20 +659,35 @@ export default function ForestRun() {
       <Nav />
       <main className="min-h-screen bg-zinc-950 px-4 pt-28 pb-16 flex flex-col items-center">
         <div className="w-full max-w-[900px]">
-          <p className="text-indigo-400 font-semibold tracking-widest uppercase text-sm mb-3">Kids Games</p>
-          <h1 className="text-4xl font-black text-white mb-1">Bradley&apos;s Forest Run</h1>
-          <p className="text-zinc-500 mb-6">Jump over logs · collect coins · escape the bear!</p>
+          <div className="flex items-end justify-between mb-3">
+            <div>
+              <p className="text-indigo-400 font-semibold tracking-widest uppercase text-sm mb-3">Kids Games</p>
+              <h1 className="text-4xl font-black text-white mb-1">Bradley&apos;s Forest Run</h1>
+              <p className="text-zinc-500">Jump logs · grab the ⭐ · escape the bear!</p>
+            </div>
+            {best > 0 && (
+              <div className="text-right">
+                <p className="text-zinc-600 text-sm">Best</p>
+                <p className="text-yellow-400 font-black text-2xl">🏆 {best}m</p>
+              </div>
+            )}
+          </div>
 
-          <div className="w-full cursor-pointer select-none" style={{ aspectRatio: "2/1" }} onClick={act}>
+          <div className="w-full cursor-pointer select-none mt-3" style={{ aspectRatio: "2/1", touchAction: "manipulation" }} onPointerDown={act}>
             <canvas ref={canvasRef} width={CW} height={CH} className="w-full h-full rounded-2xl shadow-2xl" />
           </div>
 
-          <button onClick={act}
-            className="mt-5 w-full py-5 rounded-2xl bg-green-500 hover:bg-green-400 active:scale-95 transition-all text-white font-black text-2xl shadow-lg">
+          <button
+            onPointerDown={(e) => { e.preventDefault(); act(); }}
+            className="mt-5 w-full py-5 rounded-2xl bg-green-500 hover:bg-green-400 active:scale-95 transition-all text-white font-black text-2xl shadow-lg select-none"
+            style={{ touchAction: "manipulation" }}
+          >
             {phase === "idle" ? "🌲 START!" : phase === "dead" ? "🔄 TRY AGAIN!" : "⬆️ JUMP!"}
           </button>
 
-          <p className="text-center text-zinc-600 text-sm mt-3">Press SPACE or tap to jump</p>
+          <p className="text-center text-zinc-600 text-sm mt-3">
+            SPACE or tap to jump · tap again in the air to double-jump flip! · ⭐ = smash through logs
+          </p>
         </div>
       </main>
     </>

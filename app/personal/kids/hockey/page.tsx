@@ -49,6 +49,33 @@ function playMiss(ac: AudioContext) {
   osc.start(); osc.stop(ac.currentTime + 0.25);
 }
 
+function playSave(ac: AudioContext) {
+  // Leather-glove thump
+  const osc = ac.createOscillator();
+  const gain = ac.createGain();
+  osc.connect(gain); gain.connect(ac.destination);
+  osc.type = "square";
+  osc.frequency.setValueAtTime(160, ac.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(70, ac.currentTime + 0.12);
+  gain.gain.setValueAtTime(0.12, ac.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.14);
+  osc.start(); osc.stop(ac.currentTime + 0.14);
+}
+
+function playPost(ac: AudioContext) {
+  // Metallic ping — two detuned high tones
+  [1046, 1583].forEach(freq => {
+    const osc = ac.createOscillator();
+    const gain = ac.createGain();
+    osc.connect(gain); gain.connect(ac.destination);
+    osc.type = "triangle";
+    osc.frequency.setValueAtTime(freq, ac.currentTime);
+    gain.gain.setValueAtTime(0.1, ac.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.45);
+    osc.start(); osc.stop(ac.currentTime + 0.45);
+  });
+}
+
 const GOAL_PHRASES = [
   "Goal! Bradley scores for Tampa Bay!",
   "He shoots, he scores! Go Lightning!",
@@ -57,24 +84,30 @@ const GOAL_PHRASES = [
   "What a shot Bradley! Lightning win!",
 ];
 
-async function speakGoal() {
+const HAT_TRICK_PHRASE = "Hat trick! Bradley Sellberg has a hat trick! The hats are raining down in Tampa Bay!";
+
+let currentAudio: HTMLAudioElement | null = null;
+
+async function speakPhrase(text?: string) {
   if (typeof window === "undefined") return;
-  const text = GOAL_PHRASES[Math.floor(Math.random() * GOAL_PHRASES.length)];
+  const phrase = text ?? GOAL_PHRASES[Math.floor(Math.random() * GOAL_PHRASES.length)];
+  if (currentAudio) { currentAudio.pause(); currentAudio = null; }
   try {
     const res = await fetch("/api/speak", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text }),
+      body: JSON.stringify({ text: phrase }),
     });
     if (!res.ok) throw new Error("no_key");
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
     const audio = new Audio(url);
-    audio.onended = () => URL.revokeObjectURL(url);
+    currentAudio = audio;
+    audio.onended = () => { URL.revokeObjectURL(url); if (currentAudio === audio) currentAudio = null; };
     audio.play();
   } catch {
     window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
+    const u = new SpeechSynthesisUtterance(phrase);
     u.rate = 0.9; u.pitch = 1.2;
     window.speechSynthesis.speak(u);
   }
@@ -108,6 +141,32 @@ function GoalParticles({ origin }: { origin: { x: number; y: number } }) {
           animation: `particleOut ${p.dur}s ease-out forwards`,
           transform: "translate(-50%, -50%)",
         }} />
+      ))}
+    </div>
+  );
+}
+
+// ── Hat trick: hats rain onto the ice ────────────────────────────────────────
+function HatRain() {
+  const hats = Array.from({ length: 16 }, (_, i) => ({
+    id: i,
+    x: Math.random() * 100,
+    delay: Math.random() * 0.9,
+    dur: 1.1 + Math.random() * 0.9,
+    size: 26 + Math.random() * 18,
+    flip: Math.random() > 0.5,
+  }));
+  return (
+    <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 45 }}>
+      {hats.map(h => (
+        <span key={h.id} style={{
+          position: "absolute",
+          left: `${h.x}%`,
+          top: "-40px",
+          fontSize: h.size,
+          transform: h.flip ? "scaleX(-1)" : undefined,
+          animation: `confettiFall ${h.dur}s ${h.delay}s ease-in forwards`,
+        }}>🎩</span>
       ))}
     </div>
   );
@@ -217,17 +276,36 @@ function Crowd() {
 }
 
 // ── Main game ─────────────────────────────────────────────────────────────────
+type ShotResult = "goal" | "hattrick" | "save" | "post" | "wide";
+
+const RESULT_DISPLAY: Record<ShotResult, { text: string; color: string; glow: boolean }> = {
+  goal:     { text: "🚨 GOAL!",         color: "#CC0000", glow: true },
+  hattrick: { text: "🎩 HAT TRICK!",    color: "#FFB300", glow: true },
+  save:     { text: "🧤 SAVED!",        color: "#555",    glow: false },
+  post:     { text: "🔔 OFF THE POST!", color: "#B36B00", glow: false },
+  wide:     { text: "😅 WIDE!",         color: "#555",    glow: false },
+};
+
+interface Puck {
+  x: number;
+  flying: boolean;
+  shotId: number;
+  deflect: { dx: number; toBottom: string } | null;
+}
+
 export default function HockeyGame() {
   const [goals, setGoals] = useState(0);
+  const [career, setCareer] = useState(0);
   const [shooting, setShooting] = useState(false);
-  const [result, setResult] = useState<"goal" | "miss" | null>(null);
+  const [result, setResult] = useState<ShotResult | null>(null);
   const [won, setWon] = useState(false);
   const [playerX, setPlayerX] = useState(0);
   const [goalieX, setGoalieX] = useState(0);
   const [goalFlash, setGoalFlash] = useState(false);
   const [shaking, setShaking] = useState(false);
+  const [hatRain, setHatRain] = useState(false);
   const [goalParticleOrigin, setGoalParticleOrigin] = useState<{ x: number; y: number } | null>(null);
-  const [puck, setPuck] = useState<{ x: number; flying: boolean; shotId: number } | null>(null);
+  const [puck, setPuck] = useState<Puck | null>(null);
 
   const gameRef = useRef<HTMLDivElement>(null);
   const playerDirRef = useRef(1);
@@ -239,15 +317,22 @@ export default function HockeyGame() {
   const goalsRef = useRef(0);
   const wonRef = useRef(false);
   const shotIdRef = useRef(0);
+  const shootingRef = useRef(false);
   const audioRef = useRef<AudioContext | null>(null);
 
   goalsRef.current = goals;
   wonRef.current = won;
+  shootingRef.current = shooting;
 
   function getAudio() {
     if (!audioRef.current) audioRef.current = makeAudio();
     return audioRef.current;
   }
+
+  // Career goals persist across visits
+  useEffect(() => {
+    setCareer(Number(localStorage.getItem("hockey-career-goals") || 0));
+  }, []);
 
   // Combined animation loop: player + goalie
   useEffect(() => {
@@ -270,14 +355,24 @@ export default function HockeyGame() {
         playerXRef.current = nextP;
         setPlayerX(nextP);
 
-        // Goalie (moves within net bounds)
+        // Goalie: early levels ping-pong; from 2 goals on he HUNTS Bradley
         const netLeft = containerW / 2 - NET_WIDTH / 2;
         const goalieMin = netLeft + 4;
         const goalieMax = netLeft + NET_WIDTH - GOALIE_W - 4;
-        const gSpeed = getGoalieSpeed(goalsRef.current);
-        let nextG = goalieXRef.current + goalieDirRef.current * gSpeed * dt;
-        if (nextG >= goalieMax) { nextG = goalieMax; goalieDirRef.current = -1; }
-        else if (nextG <= goalieMin) { nextG = goalieMin; goalieDirRef.current = 1; }
+        // Once the shot is away the goalie commits — he can't chase the puck
+        const gSpeed = getGoalieSpeed(goalsRef.current) * (shootingRef.current ? 0.15 : 1);
+        let nextG: number;
+        if (goalsRef.current >= 2) {
+          // Track the shooter (capped speed — Bradley is still faster)
+          const targetX = Math.min(goalieMax, Math.max(goalieMin, playerXRef.current + PLAYER_SIZE / 2 - GOALIE_W / 2));
+          const delta = targetX - goalieXRef.current;
+          const step = Math.min(Math.abs(delta), gSpeed * dt);
+          nextG = goalieXRef.current + Math.sign(delta) * step;
+        } else {
+          nextG = goalieXRef.current + goalieDirRef.current * gSpeed * dt;
+          if (nextG >= goalieMax) { nextG = goalieMax; goalieDirRef.current = -1; }
+          else if (nextG <= goalieMin) { nextG = goalieMin; goalieDirRef.current = 1; }
+        }
         goalieXRef.current = nextG;
         setGoalieX(nextG);
       }
@@ -307,36 +402,69 @@ export default function HockeyGame() {
     const netLeft = containerW / 2 - NET_WIDTH / 2;
     const netRight = containerW / 2 + NET_WIDTH / 2;
 
-    const inNet = playerCenterX >= netLeft - 8 && playerCenterX <= netRight + 8;
-    const goalieCenterX = goalieXRef.current + GOALIE_W / 2;
-    const goalieBlocks = Math.abs(playerCenterX - goalieCenterX) < GOALIE_W / 2 + 6;
-    const isGoal = inNet && !goalieBlocks;
-
     shotIdRef.current++;
     setShooting(true);
     setResult(null);
-    setPuck({ x: playerCenterX, flying: false, shotId: shotIdRef.current });
+    setPuck({ x: playerCenterX, flying: false, shotId: shotIdRef.current, deflect: null });
 
+    // Result is decided when the puck ARRIVES — the goalie keeps moving,
+    // so shooting past him is a real timing skill.
     setTimeout(() => {
-      setResult(isGoal ? "goal" : "miss");
+      const distPost = Math.min(Math.abs(playerCenterX - netLeft), Math.abs(playerCenterX - netRight));
+      const inNet = playerCenterX > netLeft + 6 && playerCenterX < netRight - 6;
+      const goalieCenterX = goalieXRef.current + GOALIE_W / 2;
+      const blocked = Math.abs(playerCenterX - goalieCenterX) < GOALIE_W / 2 + 8;
+
+      let res: ShotResult;
+      if (distPost <= 10) res = "post";
+      else if (!inNet) res = "wide";
+      else if (blocked) res = "save";
+      else res = goalsRef.current + 1 === 3 ? "hattrick" : "goal";
+
+      const isGoal = res === "goal" || res === "hattrick";
+      setResult(res);
+
       if (isGoal) {
         if (ac) playGoalHorn(ac);
-        speakGoal();
+        if (res === "hattrick") {
+          speakPhrase(HAT_TRICK_PHRASE);
+          setHatRain(true);
+          setTimeout(() => setHatRain(false), 2600);
+        } else {
+          speakPhrase();
+        }
         setGoalFlash(true);
         setShaking(true);
         setGoalParticleOrigin({ x: containerW / 2, y: 80 });
         setTimeout(() => setGoalFlash(false), 900);
         setTimeout(() => setShaking(false), 500);
         setTimeout(() => setGoalParticleOrigin(null), 1200);
+        setCareer(prev => {
+          const next = prev + 1;
+          localStorage.setItem("hockey-career-goals", String(next));
+          return next;
+        });
         setGoals(prev => {
           const next = prev + 1;
           if (next >= GOALS_TO_WIN) setTimeout(() => setWon(true), 1300);
           return next;
         });
       } else {
-        if (ac) playMiss(ac);
+        // Deflection: puck bounces off the goalie / post, or sails wide
+        if (res === "save") {
+          if (ac) playSave(ac);
+          const dir = Math.sign(playerCenterX - goalieCenterX) || (Math.random() > 0.5 ? 1 : -1);
+          setPuck(p => p ? { ...p, deflect: { dx: dir * (50 + Math.random() * 60), toBottom: "42%" } } : p);
+        } else if (res === "post") {
+          if (ac) playPost(ac);
+          const dir = Math.abs(playerCenterX - netLeft) < Math.abs(playerCenterX - netRight) ? -1 : 1;
+          setPuck(p => p ? { ...p, deflect: { dx: dir * 34, toBottom: "32%" } } : p);
+        } else {
+          if (ac) playMiss(ac);
+          setPuck(p => p ? { ...p, deflect: { dx: 0, toBottom: "108%" } } : p);
+        }
       }
-      setTimeout(() => { setShooting(false); setResult(null); setPuck(null); }, 980);
+      setTimeout(() => { setShooting(false); setResult(null); setPuck(null); }, 1050);
     }, 500);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shooting, won]);
@@ -352,10 +480,13 @@ export default function HockeyGame() {
   function reset() {
     setGoals(0); setResult(null); setShooting(false); setWon(false);
     setGoalFlash(false); setShaking(false); setPuck(null); setGoalParticleOrigin(null);
+    setHatRain(false);
     playerXRef.current = 0; setPlayerX(0); playerDirRef.current = 1;
     goalieXRef.current = 0; setGoalieX(0); goalieDirRef.current = 1;
     lastTimeRef.current = null;
   }
+
+  const display = result ? RESULT_DISPLAY[result] : null;
 
   return (
     <>
@@ -387,6 +518,7 @@ export default function HockeyGame() {
               </div>
               <p className="text-white font-black text-xl mb-1">Bradley Sellberg</p>
               <p className="text-blue-300 mb-2">scored {GOALS_TO_WIN} goals!</p>
+              <p className="text-yellow-400/90 font-bold text-sm mb-4">🏆 Career goals: {career}</p>
               <div className="flex gap-1 mb-8">
                 {Array.from({ length: GOALS_TO_WIN }).map((_, i) => (
                   <span key={i} className="text-yellow-400 text-xl" style={{ animation: `popIn 0.4s ${i * 0.1}s cubic-bezier(0.34,1.56,0.64,1) both` }}>⚡</span>
@@ -446,6 +578,9 @@ export default function HockeyGame() {
                 {/* Goal particles */}
                 {goalParticleOrigin && <GoalParticles origin={goalParticleOrigin} />}
 
+                {/* Hat trick rain */}
+                {hatRain && <HatRain />}
+
                 {/* Ice markings */}
                 <div className="absolute inset-0 pointer-events-none">
                   <div className="absolute left-0 right-0" style={{ top: "50%", height: 2, background: "rgba(220,30,30,0.3)" }} />
@@ -473,7 +608,7 @@ export default function HockeyGame() {
                     background: "linear-gradient(180deg, #002868 0%, #0A3DBF 100%)",
                     borderRadius: "6px 6px 0 0",
                     border: "2px solid #FFCC00",
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
+                    boxShadow: goals >= 2 ? "0 0 14px rgba(255,60,60,0.55)" : "0 2px 8px rgba(0,0,0,0.4)",
                     display: "flex", alignItems: "center", justifyContent: "center",
                     fontSize: 28,
                   }}>
@@ -485,10 +620,12 @@ export default function HockeyGame() {
                 {puck && (
                   <div className="pointer-events-none" style={{
                     position: "absolute",
-                    left: puck.x,
-                    bottom: puck.flying ? "88%" : "22%",
+                    left: puck.x + (puck.deflect?.dx ?? 0),
+                    bottom: puck.deflect ? puck.deflect.toBottom : puck.flying ? "88%" : "22%",
                     transform: "translate(-50%, 50%)",
-                    transition: puck.flying ? "bottom 500ms cubic-bezier(0.1,0,0.4,1)" : "none",
+                    transition: puck.deflect
+                      ? "left 0.45s ease-out, bottom 0.45s cubic-bezier(0.6,0,1,1)"
+                      : puck.flying ? "bottom 500ms cubic-bezier(0.1,0,0.4,1)" : "none",
                     zIndex: 10,
                   }}>
                     <div style={{
@@ -496,8 +633,9 @@ export default function HockeyGame() {
                       background: "radial-gradient(circle at 35% 35%, #666, #0a0a0a)",
                       border: "1.5px solid #444",
                       boxShadow: "0 2px 8px rgba(0,0,0,0.7)",
+                      animation: puck.deflect ? "screenShake 0.3s ease" : undefined,
                     }} />
-                    {puck.flying && (
+                    {puck.flying && !puck.deflect && (
                       <div style={{
                         position: "absolute", top: "100%", left: "50%", transform: "translateX(-50%)",
                         width: 5, height: 70,
@@ -509,15 +647,15 @@ export default function HockeyGame() {
                 )}
 
                 {/* Result flash */}
-                {result && (
+                {display && (
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ zIndex: 30 }}>
                     <p className="font-black" style={{
-                      fontSize: 62,
-                      color: result === "goal" ? "#CC0000" : "#555",
-                      textShadow: result === "goal" ? "0 0 20px rgba(255,0,0,0.8), 2px 2px 0 rgba(0,0,0,0.2)" : "none",
+                      fontSize: 58,
+                      color: display.color,
+                      textShadow: display.glow ? "0 0 20px rgba(255,60,0,0.8), 2px 2px 0 rgba(0,0,0,0.2)" : "none",
                       animation: "popIn 0.3s cubic-bezier(0.34,1.56,0.64,1) forwards",
                     }}>
-                      {result === "goal" ? "🚨 GOAL!" : "🧤 SAVED!"}
+                      {display.text}
                     </p>
                   </div>
                 )}
@@ -553,7 +691,7 @@ export default function HockeyGame() {
                 {shooting ? "· · ·" : "⚡  SHOOT!"}
               </button>
 
-              {/* Level indicator */}
+              {/* Level indicator + career */}
               <div className="flex items-center justify-center gap-2 mt-2 h-5">
                 {goals > 0 && (
                   <>
@@ -561,11 +699,14 @@ export default function HockeyGame() {
                       <span key={i} className="text-yellow-400 text-sm">⚡</span>
                     ))}
                     <span className="text-blue-500 text-xs font-semibold tracking-widest">
-                      {goals >= 4 ? "MAX SPEED" : "GOALIE SPEEDS UP"}
+                      {goals >= 4 ? "MAX SPEED" : goals >= 2 ? "THE GOALIE IS HUNTING YOU!" : "GOALIE SPEEDS UP"}
                     </span>
                   </>
                 )}
               </div>
+              <p className="text-center text-blue-400/40 text-xs font-semibold mt-1">
+                🏆 Career goals: {career}
+              </p>
             </>
           )}
         </div>
