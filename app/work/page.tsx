@@ -1,18 +1,42 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import Nav from "../components/Nav";
+import Footer from "../components/Footer";
+import Reveal from "../components/Reveal";
+
+export const metadata: Metadata = {
+  title: "Work",
+  description:
+    "Patents, main-stage product launches, and AI shipped to production.",
+};
 
 const sections = [
   {
-    href: "/work/patents",
-    title: "Patents",
-    description: "3 granted and published patents from HubSpot, including one co-invented with Dharmesh Shah",
-    tag: "Intellectual Property",
+    href: "/work/product-launch-talks",
+    index: "01",
+    title: "Product launch talks",
+    description:
+      "Three consecutive years on the INBOUND main stage — ChatSpot, Breeze, and Breeze Agents. Watch the AI era arrive in real time.",
+    tag: "Speaking",
+    external: false,
   },
   {
-    href: "/work/product-launch-talks",
-    title: "Product Launch Talks",
-    description: "On-stage presentations from INBOUND 2023, 2024, and 2025",
-    tag: "Speaking",
+    href: "/work/patents",
+    index: "02",
+    title: "Patents",
+    description:
+      "Three granted and published patents from HubSpot — entity resolution, custom objects, and an AI concierge co-invented with Dharmesh Shah.",
+    tag: "Intellectual property",
+    external: false,
+  },
+  {
+    href: "https://www.samsara.com/blog/introducing-samsara-coach",
+    index: "03",
+    title: "Samsara Coach",
+    description:
+      "The current chapter: AI coaching that rides along with commercial drivers. Read how Samsara is putting agents to work in the physical economy.",
+    tag: "In the wild",
+    external: true,
   },
 ];
 
@@ -20,32 +44,73 @@ export default function Work() {
   return (
     <>
       <Nav />
-      <main className="min-h-screen bg-zinc-950 px-8 pt-28 pb-16">
-        <div className="max-w-4xl mx-auto w-full">
-          <p className="text-indigo-400 font-semibold tracking-widest uppercase text-sm mb-4">Work</p>
-          <h1 className="text-6xl font-black text-white mb-2">Work</h1>
-          <p className="text-zinc-500 text-xl mb-12">Projects, patents, and things I&apos;ve shipped.</p>
+      <main className="min-h-screen px-6 pt-36 pb-24 sm:px-10">
+        <div className="mx-auto max-w-4xl">
+          <p className="hero-rise mb-6 font-mono text-[11px] uppercase tracking-[0.3em] text-amber">
+            Work
+          </p>
+          <h1
+            className="hero-rise mb-6 font-display text-6xl leading-[0.98] text-paper sm:text-8xl"
+            style={{ animationDelay: "100ms" }}
+          >
+            Receipts,
+            <br />
+            not <em className="text-amber">promises.</em>
+          </h1>
+          <p
+            className="hero-rise mb-16 max-w-xl text-lg text-muted"
+            style={{ animationDelay: "200ms" }}
+          >
+            Product leadership is a portfolio of shipped things. Here&rsquo;s
+            mine — on stage, on record, and on the road.
+          </p>
 
-          <div className="flex flex-col gap-4">
-            {sections.map((section) => (
-              <Link
-                key={section.href}
-                href={section.href}
-                className="group flex items-center justify-between p-6 rounded-2xl border border-zinc-800 hover:border-indigo-500/50 hover:bg-zinc-900 transition-all"
-              >
-                <div>
-                  <p className="text-zinc-500 text-xs font-semibold tracking-widest uppercase mb-1">{section.tag}</p>
-                  <h2 className="text-white text-2xl font-bold group-hover:text-indigo-400 transition-colors">
-                    {section.title}
-                  </h2>
-                  <p className="text-zinc-500 mt-1">{section.description}</p>
+          <div className="border-t border-line">
+            {sections.map((section, i) => {
+              const inner = (
+                <div className="group grid grid-cols-[auto_1fr_auto] items-baseline gap-x-6 border-b border-line py-8 transition-colors hover:bg-ink-2 sm:gap-x-10 sm:px-4">
+                  <p className="font-mono text-sm text-faint">
+                    {section.index}
+                  </p>
+                  <div>
+                    <p className="mb-1 font-mono text-[11px] uppercase tracking-[0.2em] text-faint">
+                      {section.tag}
+                    </p>
+                    <h2 className="font-display text-3xl text-paper transition-colors group-hover:text-amber sm:text-4xl">
+                      {section.title}
+                    </h2>
+                    <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted">
+                      {section.description}
+                    </p>
+                  </div>
+                  <span className="font-mono text-xl text-faint transition-all group-hover:translate-x-1 group-hover:text-amber">
+                    {section.external ? "↗" : "→"}
+                  </span>
                 </div>
-                <span className="text-zinc-600 group-hover:text-indigo-400 text-2xl transition-colors">→</span>
-              </Link>
-            ))}
+              );
+              return (
+                <Reveal key={section.href} delay={i * 80}>
+                  {section.external ? (
+                    <a
+                      href={section.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block"
+                    >
+                      {inner}
+                    </a>
+                  ) : (
+                    <Link href={section.href} className="block">
+                      {inner}
+                    </Link>
+                  )}
+                </Reveal>
+              );
+            })}
           </div>
         </div>
       </main>
+      <Footer />
     </>
   );
 }
