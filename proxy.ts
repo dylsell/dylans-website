@@ -7,6 +7,9 @@ export function proxy(req: NextRequest) {
   const supplied = req.cookies.get(COOKIE_NAME)?.value;
 
   if (!expected || supplied !== expected) {
+    if (req.nextUrl.pathname.startsWith("/api/")) {
+      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    }
     const url = req.nextUrl.clone();
     url.pathname = "/personal";
     url.searchParams.set("next", req.nextUrl.pathname);
@@ -17,5 +20,5 @@ export function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/personal/:path+"],
+  matcher: ["/personal/:path+", "/api/spx", "/api/spx/:path+"],
 };
