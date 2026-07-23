@@ -40,16 +40,16 @@ export default function Gate({ redirectTo }: { redirectTo: string }) {
         onChange={(e) => setPassword(e.target.value)}
         placeholder="Password"
         autoFocus
-        className="rounded-xl bg-zinc-900 border border-zinc-800 px-4 py-3 text-white placeholder-zinc-600 focus:outline-none focus:border-indigo-500 transition-colors"
+        className="border border-line bg-ink-2 px-4 py-3 font-mono text-sm text-paper placeholder-faint transition-colors focus:border-amber/60 focus:outline-none"
       />
       <button
         type="submit"
         disabled={submitting || !password}
-        className="rounded-xl bg-indigo-500 px-4 py-3 text-white font-semibold hover:bg-indigo-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        className="border border-amber/60 bg-amber/10 px-4 py-3 font-mono text-[12px] uppercase tracking-[0.2em] text-amber transition-colors hover:bg-amber hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {submitting ? "Checking..." : "Enter"}
+        {submitting ? "Checking…" : "Enter"}
       </button>
-      {error && <p className="text-rose-400 text-sm">{error}</p>}
+      {error && <p className="font-mono text-sm text-red-400">{error}</p>}
     </form>
   );
 }

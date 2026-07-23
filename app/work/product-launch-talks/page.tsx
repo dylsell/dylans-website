@@ -1,5 +1,14 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import Nav from "../../components/Nav";
+import Footer from "../../components/Footer";
+import Reveal from "../../components/Reveal";
+
+export const metadata: Metadata = {
+  title: "Product launch talks",
+  description:
+    "Three consecutive years on the INBOUND main stage — ChatSpot, Breeze, and Breeze Agents.",
+};
 
 const talks = [
   {
@@ -8,10 +17,10 @@ const talks = [
     title: "Meet ChatSpot",
     event: "INBOUND 2023",
     location: "Boston, MA",
-    label: "The AI Assistant Era Begins",
+    label: "The AI assistant era begins",
     description:
-      "Six months after ChatGPT reshaped the industry, I brought ChatSpot to INBOUND — our bet on what AI built for business, not consumers, should look like. The core idea was simple: your CRM already holds everything you know about your customers, so your AI should work from that context, not around it. We showed natural language access to CRM data, AI-assisted prospecting, and content generation grounded in real business signals. It was an early and deliberate stake in the ground.",
-    tags: ["AI Assistant", "CRM", "Natural Language", "ChatGPT Era"],
+      "Six months after ChatGPT reshaped the industry, I brought ChatSpot to INBOUND — our bet on what AI built for business, not consumers, should look like. The core idea was simple: your CRM already holds everything you know about your customers, so your AI should work from that context, not around it. Natural language access to CRM data, AI-assisted prospecting, content generation grounded in real business signals. An early and deliberate stake in the ground.",
+    tags: ["AI assistant", "CRM", "Natural language"],
   },
   {
     year: "2024",
@@ -19,10 +28,10 @@ const talks = [
     title: "Meet Breeze",
     event: "INBOUND 2024",
     location: "Boston, MA",
-    label: "Building the AI Platform",
+    label: "Building the AI platform",
     description:
-      "A year in, it was clear that point solutions weren't enough. I led the product vision for Breeze — HubSpot's unified AI layer built on three foundations: Copilot for in-context assistance across every surface, Agents for autonomous end-to-end execution, and Intelligence to enrich customer data at scale. The goal was to collapse the gap between enterprise-grade AI capability and the speed a growing business actually needs. 80 AI features. One coherent platform.",
-    tags: ["AI Platform", "Copilot", "Agents", "Data Intelligence"],
+      "A year in, it was clear that point solutions weren't enough. I led the product vision for Breeze — HubSpot's unified AI layer built on three foundations: Copilot for in-context assistance across every surface, Agents for autonomous end-to-end execution, and Intelligence to enrich customer data at scale. The goal: collapse the gap between enterprise-grade AI and the speed a growing business actually needs. Eighty AI features. One coherent platform.",
+    tags: ["AI platform", "Copilot", "Agents", "Intelligence"],
   },
   {
     year: "2025",
@@ -30,10 +39,10 @@ const talks = [
     title: "Breeze Agents: Your New Digital Teammates",
     event: "INBOUND 2025",
     location: "San Francisco, CA",
-    label: "The Agentic Future",
+    label: "The agentic future",
     description:
-      "The shift from AI tools to AI teammates is the most significant change I've seen in enterprise software in a decade. At INBOUND 2025, I presented the next chapter: 20+ purpose-built Breeze Agents operating across sales, marketing, and service — not waiting to be prompted, but proactively executing work. We also launched Breeze Studio and the Agent Marketplace, opening the platform to builders. The question is no longer whether to adopt AI. It's whether your AI can actually get things done.",
-    tags: ["AI Agents", "Agentic AI", "Automation", "Agent Marketplace"],
+      "The shift from AI tools to AI teammates is the most significant change I've seen in enterprise software in a decade. At INBOUND 2025 I presented the next chapter: 20+ purpose-built Breeze Agents operating across sales, marketing, and service — not waiting to be prompted, but proactively executing work. We also launched Breeze Studio and the Agent Marketplace, opening the platform to builders. The question is no longer whether to adopt AI. It's whether your AI can actually get things done.",
+    tags: ["AI agents", "Agentic AI", "Marketplace"],
   },
 ];
 
@@ -41,106 +50,81 @@ export default function ProductLaunchTalks() {
   return (
     <>
       <Nav />
-      <main className="min-h-screen bg-zinc-950 px-8 pt-28 pb-24">
-        <div className="max-w-3xl mx-auto w-full">
+      <main className="min-h-screen px-6 pt-36 pb-24 sm:px-10">
+        <div className="mx-auto max-w-3xl">
           <Link
             href="/work"
-            className="inline-flex items-center gap-2 text-zinc-500 hover:text-white text-sm transition-colors mb-10"
+            className="mb-10 inline-block font-mono text-[11px] uppercase tracking-[0.2em] text-muted transition-colors hover:text-amber"
           >
             ← Work
           </Link>
 
-          <p className="text-indigo-400 font-semibold tracking-widest uppercase text-sm mb-3">
+          <p className="mb-6 font-mono text-[11px] uppercase tracking-[0.3em] text-amber">
             Speaking
           </p>
-          <h1 className="text-5xl font-black text-white mb-3">
-            Product Launch Talks
+          <h1 className="mb-6 font-display text-6xl leading-[0.98] text-paper sm:text-7xl">
+            Three years,
+            <br />
+            three <em className="text-amber">launches.</em>
           </h1>
-          <p className="text-zinc-400 text-lg max-w-xl mb-16">
-            Three consecutive years on the INBOUND main stage, leading the product
-            launches that shaped how HubSpot — and its customers — approached AI.
+          <p className="mb-20 max-w-xl text-lg text-muted">
+            Watch the AI era arrive in real time — the INBOUND main-stage
+            launches that shaped how HubSpot and its customers approached AI.
           </p>
 
-          {/* Timeline */}
-          <div className="relative">
-            {/* Vertical line */}
-            <div className="absolute left-[52px] top-0 bottom-0 w-px bg-gradient-to-b from-indigo-500/60 via-indigo-500/30 to-transparent" />
-
-            <div className="flex flex-col gap-16">
-              {[...talks].reverse().map((talk, i) => (
-                <div key={talk.id} className="relative flex gap-8">
-                  {/* Year badge */}
-                  <div className="flex flex-col items-center shrink-0" style={{ width: 104 }}>
-                    <div
-                      className="relative z-10 flex items-center justify-center rounded-full font-black text-sm tabular-nums"
-                      style={{
-                        width: 52,
-                        height: 52,
-                        background: i === 2
-                          ? "linear-gradient(135deg, #6366f1, #4f46e5)"
-                          : i === 1
-                          ? "linear-gradient(135deg, #4f46e5, #3730a3)"
-                          : "linear-gradient(135deg, #3730a3, #1e1b4b)",
-                        boxShadow: "0 0 0 4px #09090b, 0 0 20px rgba(99,102,241,0.3)",
-                        color: "white",
-                      }}
-                    >
-                      {talk.year}
-                    </div>
-                  </div>
-
-                  {/* Content */}
-                  <div className="flex-1 min-w-0 pb-2">
-                    {/* Label */}
-                    <p className="text-indigo-400 text-xs font-semibold tracking-widest uppercase mb-2">
+          <div className="space-y-20">
+            {[...talks].reverse().map((talk) => (
+              <Reveal key={talk.id}>
+                <article className="border-t border-line pt-8">
+                  <div className="mb-4 flex items-baseline justify-between gap-4">
+                    <p className="font-mono text-[11px] uppercase tracking-[0.25em] text-amber">
                       {talk.label}
                     </p>
-
-                    {/* Title + event */}
-                    <h2 className="text-2xl font-black text-white mb-1">
-                      {talk.title}
-                    </h2>
-                    <p className="text-zinc-500 text-sm mb-4">
-                      {talk.event} · {talk.location}
+                    <p className="font-display text-3xl text-faint">
+                      {talk.year}
                     </p>
-
-                    {/* Video embed */}
-                    <div
-                      className="relative w-full rounded-2xl overflow-hidden bg-zinc-900 mb-5 shadow-xl"
-                      style={{ paddingBottom: "56.25%" }}
-                    >
-                      <iframe
-                        className="absolute inset-0 w-full h-full"
-                        src={`https://www.youtube.com/embed/${talk.id}`}
-                        title={talk.title}
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                      />
-                    </div>
-
-                    {/* Description */}
-                    <p className="text-zinc-300 leading-relaxed mb-5">
-                      {talk.description}
-                    </p>
-
-                    {/* Tags */}
-                    <div className="flex flex-wrap gap-2">
-                      {talk.tags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="text-xs font-semibold px-3 py-1 rounded-full text-indigo-300 border border-indigo-500/30 bg-indigo-500/10"
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                  <h2 className="mb-1 font-display text-3xl text-paper sm:text-4xl">
+                    {talk.title}
+                  </h2>
+                  <p className="mb-6 font-mono text-[12px] text-muted">
+                    {talk.event} · {talk.location}
+                  </p>
+
+                  <div
+                    className="relative mb-6 w-full overflow-hidden border border-line bg-ink-2"
+                    style={{ paddingBottom: "56.25%" }}
+                  >
+                    <iframe
+                      className="absolute inset-0 h-full w-full"
+                      src={`https://www.youtube.com/embed/${talk.id}`}
+                      title={talk.title}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  </div>
+
+                  <p className="mb-6 leading-relaxed text-muted">
+                    {talk.description}
+                  </p>
+
+                  <div className="flex flex-wrap gap-2">
+                    {talk.tags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="border border-line px-3 py-1 font-mono text-[11px] uppercase tracking-[0.15em] text-muted"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </article>
+              </Reveal>
+            ))}
           </div>
         </div>
       </main>
+      <Footer />
     </>
   );
 }
