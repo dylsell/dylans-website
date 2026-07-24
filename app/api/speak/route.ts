@@ -10,7 +10,8 @@ export async function POST(req: NextRequest) {
   }
 
   const { text } = await req.json();
-  if (!text || typeof text !== "string") {
+  // Public endpoint — cap length so it can't be farmed for long-form TTS.
+  if (!text || typeof text !== "string" || text.length > 300) {
     return NextResponse.json({ error: "bad_request" }, { status: 400 });
   }
 
