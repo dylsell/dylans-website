@@ -1,17 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
+import {
+  PERSONAL_AUTH_COOKIE,
+  verifyPersonalSessionToken,
+} from "./lib/personalAuth";
 
-const COOKIE_NAME = "personal_auth";
+export async function proxy(req: NextRequest) {
+  const secret = process.env.PERSONAL_PASSWORD;
+  const token = req.cookies.get(PERSONAL_AUTH_COOKIE)?.value;
+  const authed = await verifyPersonalSessionToken(token, secret);
 
-export function proxy(req: NextRequest) {
-  // Kids games are public; everything else under /personal stays gated.
-  if (req.nextUrl.pathname.startsWith("/personal/kids")) {
-    return NextResponse.next();
-  }
-
-  const expected = process.env.PERSONAL_PASSWORD;
-  const supplied = req.cookies.get(COOKIE_NAME)?.value;
-
-  if (!expected || supplied !== expected) {
+  if (!authed) {
     if (req.nextUrl.pathname.startsWith("/api/")) {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }

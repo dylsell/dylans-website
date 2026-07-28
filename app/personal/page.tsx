@@ -3,16 +3,22 @@ import { cookies } from "next/headers";
 import Nav from "../components/Nav";
 import Footer from "../components/Footer";
 import Gate from "./Gate";
+import {
+  normalizePersonalRedirect,
+  PERSONAL_AUTH_COOKIE,
+  verifyPersonalSessionToken,
+} from "../../lib/personalAuth";
 
 export default async function PersonalLanding({
   searchParams,
 }: {
   searchParams: Promise<{ next?: string }>;
 }) {
-  const expected = process.env.PERSONAL_PASSWORD;
-  const supplied = (await cookies()).get("personal_auth")?.value;
-  const authed = !!expected && supplied === expected;
+  const secret = process.env.PERSONAL_PASSWORD;
+  const token = (await cookies()).get(PERSONAL_AUTH_COOKIE)?.value;
+  const authed = await verifyPersonalSessionToken(token, secret);
   const { next } = await searchParams;
+  const redirectTo = normalizePersonalRedirect(next);
 
   if (!authed) {
     return (
@@ -30,7 +36,7 @@ export default async function PersonalLanding({
               Family-only builds live here. If you have the password, you know
               why.
             </p>
-            <Gate redirectTo={next || "/personal"} />
+            <Gate redirectTo={redirectTo} />
           </div>
         </main>
       </>
