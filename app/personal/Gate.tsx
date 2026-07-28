@@ -20,7 +20,12 @@ export default function Gate({ redirectTo }: { redirectTo: string }) {
         body: JSON.stringify({ password }),
       });
       if (!res.ok) {
-        setError("Incorrect password.");
+        const body = await res.json().catch(() => null);
+        setError(
+          res.status === 503 || body?.error === "not_configured"
+            ? "Access isn’t configured on the live site yet."
+            : "That password didn’t match.",
+        );
         setSubmitting(false);
         return;
       }
@@ -39,6 +44,7 @@ export default function Gate({ redirectTo }: { redirectTo: string }) {
         value={password}
         onChange={(e) => setPassword(e.target.value)}
         placeholder="Password"
+        autoComplete="current-password"
         autoFocus
         className="border border-line bg-ink-2 px-4 py-3 font-mono text-sm text-paper placeholder-faint transition-colors focus:border-amber/60 focus:outline-none"
       />
@@ -49,7 +55,11 @@ export default function Gate({ redirectTo }: { redirectTo: string }) {
       >
         {submitting ? "Checking…" : "Enter"}
       </button>
-      {error && <p className="font-mono text-sm text-red-400">{error}</p>}
+      {error && (
+        <p role="alert" className="font-mono text-sm text-red-400">
+          {error}
+        </p>
+      )}
     </form>
   );
 }
