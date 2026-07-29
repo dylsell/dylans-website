@@ -42,3 +42,6 @@ next-env.d.ts
 
 # archived SPX intraday sessions (replay data)
 /.data/
+
+# local media backups (large files; never commit or deploy)
+/.archive/
