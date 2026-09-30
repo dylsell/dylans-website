@@ -12,8 +12,8 @@ const games = [
   {
     href: "/personal/kids/hockey",
     emoji: "🏒",
-    title: "Hockey",
-    description: "Beat the goalie — hat tricks & career goals!",
+    title: "Lightning Hockey",
+    description: "Captain Bradley’s arena. Score hat tricks. Win the cup!",
     color: "from-sky-500 to-blue-600",
   },
   {

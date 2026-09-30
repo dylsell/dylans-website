@@ -59,7 +59,7 @@ export default async function PersonalLanding({
             just for the people in mine.
           </p>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4">
             <Link
               href="/personal/kids"
               className="group block border border-line p-8 transition-colors hover:border-amber/40 hover:bg-ink-2"
@@ -72,23 +72,6 @@ export default async function PersonalLanding({
               </h2>
               <p className="mt-2 text-sm text-muted">
                 Arcade builds for my toughest stakeholder.
-              </p>
-              <p className="mt-6 font-mono text-sm text-faint transition-all group-hover:translate-x-1 group-hover:text-amber">
-                →
-              </p>
-            </Link>
-            <Link
-              href="/personal/trading"
-              className="group block border border-line p-8 transition-colors hover:border-amber/40 hover:bg-ink-2"
-            >
-              <p className="mb-6 font-mono text-[11px] tracking-[0.2em] text-faint">
-                02
-              </p>
-              <h2 className="font-display text-2xl text-paper transition-colors group-hover:text-amber">
-                SPX · Saty levels
-              </h2>
-              <p className="mt-2 text-sm text-muted">
-                Live ATR levels, pivot ribbon, phase oscillator.
               </p>
               <p className="mt-6 font-mono text-sm text-faint transition-all group-hover:translate-x-1 group-hover:text-amber">
                 →

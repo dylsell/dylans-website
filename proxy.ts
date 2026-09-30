@@ -10,9 +10,6 @@ export async function proxy(req: NextRequest) {
   const authed = await verifyPersonalSessionToken(token, secret);
 
   if (!authed) {
-    if (req.nextUrl.pathname.startsWith("/api/")) {
-      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-    }
     const url = req.nextUrl.clone();
     url.pathname = "/personal";
     url.searchParams.set("next", req.nextUrl.pathname);
@@ -23,5 +20,5 @@ export async function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/personal/:path+", "/api/spx", "/api/spx/:path+"],
+  matcher: ["/personal/:path+"],
 };
