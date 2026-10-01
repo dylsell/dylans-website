@@ -1,0 +1,166 @@
+.page { min-height:100vh; padding:0 36px; background:#0b1023; background-image:radial-gradient(ellipse at 15% 0%,#28325455,transparent 55%),radial-gradient(ellipse at 95% 55%,#45245525,transparent 50%); color:#f4f3ff; font-family:var(--font-geist),Arial,sans-serif; }
+.shell { max-width:1360px; margin:0 auto; }
+.topbar { height:75px; display:flex; align-items:center; justify-content:space-between; gap:20px; border-bottom:1px solid #b7c4eb1a; }
+.back { min-height:48px; display:flex; align-items:center; gap:10px; font-size:12px; color:#adb7d2; text-decoration:none; }
+.back:hover { color:#f7fbff; }
+.club { display:flex; align-items:center; gap:10px; color:#cad5eb; font-size:9px; letter-spacing:2px; font-weight:650; }
+.club>svg { color:#ace4d4; }
+.sound { min-height:46px; border:1px solid #9ca8c533; background:#1a2540; color:#d8e6ef; border-radius:7px; padding:0 13px; display:flex; align-items:center; justify-content:center; gap:8px; font-size:11px; cursor:pointer; }
+.heading { padding:30px 0 28px; display:flex; justify-content:space-between; align-items:center; gap:20px; }
+.eyebrow { display:flex; align-items:center; gap:7px; color:#a2e3d2; font-size:8px; letter-spacing:2px; font-weight:600; margin:0 0 10px; }
+.eyebrow>span { width:5px; height:5px; border-radius:50%; background:#b0e8d3; }
+.heading h1 { margin:0; font-size:clamp(31px,3.6vw,48px); letter-spacing:-2px; font-weight:800; line-height:1.1; }
+.heading h1 em { color:#b3dfd5; font-style:normal; }
+.missionTag { text-align:right; border-right:2px solid #a9dcce70; padding-right:13px; }
+.missionTag>span { display:block; font-size:7px; font-weight:650; letter-spacing:1.8px; color:#88a5b9; margin-bottom:7px; }
+.missionTag strong { display:block; font-size:11px; font-weight:400; color:#b7c4da; }
+.layout { display:grid; grid-template-columns:minmax(0,1fr) 252px; gap:24px; align-items:start; }
+.gameColumn { min-width:0; }
+.missionTrack { display:flex; border:1px solid #8b9abe30; background:#111c34; border-radius:8px; margin-bottom:15px; overflow:hidden; }
+.missionStop { flex:1; display:flex; align-items:center; gap:9px; padding:13px 13px; border-right:1px solid #a0bbd519; color:#7388a7; }
+.missionStop:last-child { border:0; }
+.missionStop>span { flex-shrink:0; display:grid; place-items:center; width:23px; height:23px; border:1px solid #7586a75c; border-radius:50%; font-size:8px; }
+.missionStop small { display:block; font-size:5px; letter-spacing:1.2px; margin-bottom:4px; }
+.missionStop strong { display:block; font-size:10px; font-weight:600; }
+.missionStop>svg { margin-left:auto; opacity:.7; width:19px; }
+.currentStop { background:#263e49; color:#e1f6ed; box-shadow:inset 0 -2px #b6ecda; }
+.currentStop>span { background:#b6e5d6; color:#1a3a45; border-color:#b6e5d6; font-weight:700; }
+.currentStop small { color:#b4dccd; }
+.savedStop { color:#b9deac; }
+.arena { border:1px solid #91b5c452; border-radius:12px; background:#101b31; overflow:hidden; box-shadow:0 16px 60px #0004; }
+.hud { display:flex; align-items:center; gap:24px; padding:0 20px; height:65px; background:#172b40; border-bottom:1px solid #8faabd30; }
+.levelLabel { display:flex; align-items:center; gap:9px; }
+.liveDot { width:5px; height:5px; border-radius:50%; background:#a4e2cb; box-shadow:0 0 9px #94e7d155; }
+.levelLabel small { display:block; color:#8ba6bb; font-size:6px; letter-spacing:1.2px; margin-bottom:4px; }
+.levelLabel strong { display:block; color:#dce9e7; font-size:12px; font-weight:650; }
+.score { display:flex; align-items:center; gap:7px; margin-left:auto; padding-left:22px; border-left:1px solid #9eb6ca22; }
+.score strong { font-size:27px; font-weight:750; line-height:1; font-variant-numeric:tabular-nums; }
+.score>span { font-size:6px; letter-spacing:1px; color:#8da7bd; writing-mode:vertical-rl; }
+.lives { display:flex; gap:5px; align-items:center; margin-left:auto; }
+.lives i { width:8px; height:15px; border-radius:3px; background:#40516a66; border:1px solid #8198b628; transform:skew(-10deg); }
+.lives .liveShield { background:#a5dfd0; border-color:#cef8e9; }
+.arenaTools { display:flex; align-items:center; gap:1px; border-left:1px solid #aac1d123; padding-left:9px; }
+.arenaTools button { width:44px; min-width:44px; height:46px; display:grid; place-items:center; color:#b8ccd7; border:0; border-radius:5px; cursor:pointer; }
+.arenaTools button:hover { background:#9aadc414; }
+.arenaTools button:disabled { opacity:.25; cursor:default; }
+.space { position:relative; width:100%; aspect-ratio:960/720; background:#0a1730; }
+.canvas { display:block; width:100%; height:auto; aspect-ratio:960/720; touch-action:none; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; outline-offset:-4px; }
+.canvas:focus-visible { outline:3px solid #a5efd7; }
+.waveTag { position:absolute; top:16px; left:18px; padding:7px 9px; border:1px solid #a6cadd33; border-radius:4px; background:#0c173fcc; color:#c4dae7; font-size:8px; font-weight:600; letter-spacing:1px; pointer-events:none; }
+.bossBar { position:absolute; top:15px; left:30%; right:21%; text-align:center; pointer-events:none; }
+.bossBar strong { display:block; font-size:10px; letter-spacing:.5px; font-weight:600; color:#f2c5c2; text-shadow:0 2px 5px #081025; margin-bottom:7px; }
+.bossBar>div { background:#4d3b5144; height:6px; border:1px solid #e3a89955; border-radius:8px; overflow:hidden; }
+.bossBar>div>span { display:block; height:100%; background:linear-gradient(90deg,#e77da9,#f3b98c); border-radius:8px; }
+.upgradePop { position:absolute; bottom:20%; left:50%; transform:translateX(-50%); display:flex; gap:9px; align-items:center; padding:10px 15px; background:#163a42ec; border:1px solid #b2e8d488; border-radius:7px; color:#caf3d6; pointer-events:none; text-align:left; box-shadow:0 5px 25px #06142960; white-space:nowrap; }
+.upgradePop span { font-size:6px; display:block; letter-spacing:1.5px; margin-bottom:5px; color:#85c7bb; }
+.upgradePop strong { font-size:12px; display:block; font-weight:650; }
+.overlay { position:absolute; inset:0; display:flex; align-items:flex-start; justify-content:center; padding:25px; background:#101c36eb; overflow-y:auto; }
+.lobby { justify-content:flex-start; padding-left:6%; background:linear-gradient(90deg,#0d1d38f2 0%,#122546e5 40%,#15254355 75%,#16244835); overflow:hidden; }
+.intro { margin:auto 0; position:relative; z-index:1; max-width:78%; }
+.callup { display:inline-flex; align-items:center; gap:7px; font-size:7px; font-weight:600; letter-spacing:1.3px; color:#bcdedb; padding:8px 10px; border:1px solid #9ecbb841; border-radius:4px; background:#52847f13; }
+.callup>span { width:4px; height:4px; background:#ade9d0; border-radius:50%; }
+.intro h2 { font-size:clamp(39px,5.2vw,75px); font-weight:850; letter-spacing:-3.4px; line-height:1.03; margin:22px 0 18px; }
+.intro h2 em { font-style:normal; color:#b5ead7; }
+.intro>p { color:#aebed5; font-size:12px; line-height:1.85; margin:0 0 25px; }
+.primary { display:inline-flex; align-items:center; justify-content:center; gap:26px; background:#b7e7d2; color:#153842; border:1px solid #d4f5e4; border-radius:7px; min-height:52px; padding:14px 20px; font-size:12px; font-weight:800; cursor:pointer; transition:background .15s; }
+.primary:hover { background:#d6f7df; }
+.primary>span { font-size:21px; font-weight:400; line-height:1; }
+.primary:disabled { opacity:.5; cursor:default; }
+.introHint { display:flex; align-items:center; gap:10px; color:#93aec5; font-size:9px; line-height:1.75; margin-top:22px; }
+.introHint>span { font-family:Arial,sans-serif; font-size:27px; font-weight:400; color:#a5cccd; }
+.introHint strong { color:#bfdbd5; font-weight:500; }
+.orbitBadge { position:absolute; right:6%; top:36%; width:132px; height:132px; border:1px solid #c9e4df7a; outline:1px solid #bddfd829; outline-offset:9px; border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#d4eadc; transform:rotate(11deg); background:#537f9817; box-shadow:0 0 0 28px #7a91a909; }
+.orbitBadge>strong { font-size:13px; letter-spacing:2px; font-weight:750; margin:9px 0 5px; }
+.orbitBadge>span { font-size:5px; letter-spacing:1.3px; }
+.resultCard { max-width:530px; margin:auto; text-align:center; }
+.resultIcon { width:64px; height:64px; display:grid; place-items:center; margin:0 auto 18px; color:#b8dce2; background:#658ca221; border:1px solid #99b5ca50; border-radius:50%; }
+.rescueIcon { color:#b9ead3; background:#87c4a518; border-color:#abe8c650; }
+.resultCard .eyebrow { justify-content:center; font-size:7px; letter-spacing:1.7px; margin-bottom:12px; }
+.resultCard h2 { margin:0 0 14px; font-size:clamp(25px,3.1vw,42px); letter-spacing:-1.6px; line-height:1.12; font-weight:800; }
+.resultCard>p:not(.eyebrow) { color:#acbed3; font-size:12px; line-height:1.8; margin:0 0 22px; }
+.secondary { display:block; margin:8px auto 0; min-height:44px; padding:7px; color:#b2c6d6; font-size:10px; text-decoration:underline; cursor:pointer; }
+.rescueReward { padding:15px 24px; margin:22px 0; border:1px solid #8bbaaa30; background:#73ac9410; border-radius:6px; }
+.rescueReward>span { display:block; font-size:6px; color:#9bbbab; letter-spacing:1px; margin-bottom:8px; }
+.rescueReward strong { display:block; color:#d4eadd; font-size:13px; font-weight:600; }
+.resultStats { display:flex; align-items:center; justify-content:center; gap:35px; margin:24px 0; }
+.resultStats strong { display:block; font-size:30px; font-weight:750; line-height:1; color:#eaf5e7; font-variant-numeric:tabular-nums; }
+.resultStats small { font-size:16px; color:#8babae; }
+.resultStats span { display:block; color:#91b5bc; font-size:6px; letter-spacing:1px; margin-top:8px; }
+.savedCrew { display:flex; justify-content:center; gap:21px; margin:20px 0; }
+.savedCrew>span { display:flex; flex-direction:column; align-items:center; color:#b7e6cf; }
+.savedCrew small { margin-top:7px; font-size:8px; color:#b6cbc9; }
+.flightFooter { display:flex; align-items:center; gap:20px; min-height:65px; padding:12px 19px; background:#162d3e; border-top:1px solid #a5c3d327; }
+.blasterLabel { display:flex; align-items:center; gap:9px; }
+.blasterLabel>svg { width:15px; color:#b1e5cc; }
+.blasterLabel small { display:block; color:#7fb0b6; font-size:5px; letter-spacing:1.4px; margin-bottom:5px; }
+.blasterLabel strong { display:block; font-size:11px; font-weight:650; color:#d1e8e0; }
+.tierLights { display:flex; gap:4px; }
+.tierLights i { width:12px; height:5px; border-radius:1px; background:#49747a44; }
+.tierLights i.tierOn { background:#b0e5cc; }
+.autopilotNote { margin-left:auto; font-size:6px; letter-spacing:1px; color:#7c9fb1; }
+.coach { display:flex; align-items:center; gap:9px; padding:15px 3px; min-height:54px; }
+.radioIcon { color:#91cbbd; font-size:14px; }
+.coach p { color:#aabed1; font-size:10px; line-height:1.6; margin:0; }
+.instructions { display:flex; align-items:center; gap:16px; padding:12px 3px; border-top:1px solid #91abc420; color:#728ba7; font-size:8px; }
+.instructions>span:last-child { margin-left:auto; color:#b69485; }
+.sidebar { display:flex; flex-direction:column; gap:17px; }
+.captainCard { border:1px solid #8eacc643; border-radius:10px; overflow:hidden; background:#1b344b; }
+.cardTop { height:38px; display:flex; align-items:center; justify-content:space-between; padding:0 15px; font-size:6px; font-weight:650; letter-spacing:1.1px; color:#abc5cf; background:#192b42; }
+.cardTop>svg { color:#b6dfd4; }
+.portrait { height:272px; position:relative; overflow:hidden; background:radial-gradient(ellipse at 50% 25%,#436580,#182d45); }
+.bigNumber { position:absolute; font-size:180px; font-weight:850; letter-spacing:-15px; line-height:1; top:0; right:10px; color:#acd7df16; }
+.portrait>img { position:absolute; width:244px; height:340px; left:calc(50% - 122px); top:5px; border-radius:45% 45% 0 0; object-fit:cover; object-position:center top; mask-image:linear-gradient(black 27%,transparent 84%); }
+.nameplate { position:absolute; bottom:0; left:0; right:0; padding:40px 18px 18px; background:linear-gradient(transparent,#163144 50%); }
+.nameplate>small { color:#9bbfca; font-size:5px; letter-spacing:1.1px; }
+.nameplate h2 { font-size:27px; font-weight:850; letter-spacing:1px; line-height:1; margin:7px 0 12px; }
+.nameplate h2>span { display:block; margin-top:3px; }
+.captainRank { display:flex; align-items:center; gap:6px; font-size:5px; letter-spacing:1px; color:#a3d0c5; }
+.captainRank>span { width:4px; height:4px; border-radius:50%; background:#a3d0c5; }
+.records { display:grid; grid-template-columns:1.15fr 1fr; padding:17px 9px; text-align:center; }
+.records>div+div { border-left:1px solid #91adc323; }
+.records strong { display:block; font-size:26px; font-weight:750; line-height:1; font-variant-numeric:tabular-nums; color:#e1f0ea; }
+.records span { display:block; font-size:5px; letter-spacing:1px; color:#83a4b7; margin-top:7px; }
+.crewCard { padding:16px; border:1px solid #a5b3cf2a; border-radius:9px; background:#111e34; }
+.sectionHeading { display:flex; justify-content:space-between; align-items:center; gap:5px; margin-bottom:8px; }
+.sideLabel { margin:0; font-size:7px; font-weight:650; letter-spacing:1.3px; color:#b9ccd7; }
+.sectionHeading>span { color:#809aab; font-size:6px; letter-spacing:.5px; }
+.crewList { display:flex; flex-direction:column; }
+.crewMember { display:flex; width:100%; align-items:center; gap:10px; text-align:left; border-bottom:1px solid #89a3bd1d; padding:10px 0; color:#829bb2; cursor:pointer; min-height:59px; }
+.crewMember:last-child { border:0; }
+.crewMember:disabled { cursor:default; }
+.crewAvatar { flex-shrink:0; width:34px; height:35px; border:1px solid #86a0ba33; border-radius:8px; background:#16283e; display:grid; place-items:center; }
+.crewMember strong { display:block; font-size:11px; font-weight:550; }
+.crewMember small { display:block; margin-top:4px; font-size:7px; color:#6b879f; }
+.crewStatus { margin-left:auto; font-size:15px; color:#6f91a2; display:grid; place-items:center; }
+.crewCurrent { color:#d5e7e3; }
+.crewCurrent .crewAvatar { color:#b3e6d0; border-color:#aadfc860; background:#61968819; }
+.crewCurrent small { color:#99b9bf; }
+.crewSafe { color:#b9dfbb; }
+.crewSafe .crewAvatar { color:#b9dfbb; background:#5c99661a; border-color:#95c68850; }
+.crewSafe .crewStatus { color:#b9dfbb; }
+.crewCard>p { margin:10px 0 0; color:#7596ac; font-size:8px; line-height:1.7; }
+.settings { padding:16px; border:1px solid #8fabc227; border-radius:9px; background:#101d31; }
+.modePicker { display:flex; gap:4px; margin:12px 0 11px; padding:4px; background:#080f23; border:1px solid #8099b41c; border-radius:6px; }
+.modePicker button { flex:1; min-height:46px; padding:7px 4px; font-size:10px; border:1px solid transparent; border-radius:4px; color:#7e9bb5; cursor:pointer; }
+.modePicker button.selected { background:#b1dccf; color:#183d45; border-color:#ccf0dd; font-weight:650; }
+.modePicker button:disabled { cursor:default; }
+.settings>p { margin:0; color:#89a5bb; font-size:9px; line-height:1.75; }
+.settings>p.saveNote { margin-top:13px; padding-top:12px; border-top:1px solid #93a9c320; color:#688aa3; font-size:8px; }
+.footer { display:flex; align-items:center; gap:8px; padding:26px 0; color:#6a859e; font-size:6px; letter-spacing:1px; }
+.footer>svg { color:#9dbfbb; }
+.footer>span:last-child { margin-left:auto; color:#546c89; }
+.canvasError { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px; text-align:center; background:#162e45; z-index:5; }
+.canvasError h2 { font-size:23px; font-weight:750; }
+.canvasError p { margin:15px 0; font-size:12px; }
+.canvasError a { text-decoration:underline; padding:15px; }
+.page button:focus-visible,.page a:focus-visible { outline:3px solid #b7edda; outline-offset:3px; }
+.arena:fullscreen { display:flex; flex-direction:column; align-items:center; justify-content:center; width:100%; height:100%; background:#081326; border:0; border-radius:0; }
+.arena:fullscreen .hud,.arena:fullscreen .space,.arena:fullscreen .flightFooter { width:min(100%,calc((100vh - 130px)*1.333333)); width:min(100%,calc((100dvh - 130px)*1.333333)); flex-shrink:0; }
+.arena:fullscreen .resultSpace,.arena:fullscreen .lobbySpace { min-height:0; }
+@media(min-width:1550px) { .page { padding:0 60px; } }
+@media(max-width:1150px) { .page { padding:0 24px; }.layout { grid-template-columns:minmax(0,1fr) 225px; gap:18px; }.missionStop { padding:12px 9px; gap:7px; }.missionStop>svg { display:none; }.missionStop strong { font-size:9px; }.hud { gap:16px; padding:0 15px; }.score { padding-left:17px; }.intro h2 { font-size:57px; }.orbitBadge { width:112px; height:112px; right:6%; }.orbitBadge>strong { font-size:11px; }.orbitBadge>svg { width:34px; }.intro>p { font-size:11px; }.flightFooter { padding:12px 15px; gap:14px; }.autopilotNote { font-size:5px; letter-spacing:.7px; }.instructions { font-size:7px; }.crewCard,.settings { padding:14px; } }
+@media(max-width:950px) { .layout { grid-template-columns:1fr; }.sidebar { display:grid; grid-template-columns:1fr 1fr; gap:17px 22px; padding-top:4px; }.captainCard { grid-row:span 2; }.portrait { height:326px; }.portrait>img { width:277px; height:388px; left:calc(50% - 139px); }.nameplate { padding:45px 22px 23px; }.nameplate h2 { font-size:34px; }.records { padding:23px 12px; }.records strong { font-size:30px; }.heading h1 { font-size:38px; }.heading { padding:25px 0; }.topbar { height:68px; }.club { font-size:8px; letter-spacing:1.2px; }.missionTag { display:none; }.missionStop { padding:13px; gap:9px; }.missionStop>svg { display:block; }.missionStop strong { font-size:11px; }.intro h2 { font-size:clamp(44px,8vw,70px); }.intro>p { font-size:13px; }.introHint { font-size:10px; }.orbitBadge { width:132px; height:132px; }.orbitBadge>strong { font-size:13px; }.orbitBadge>svg { width:43px; }.hud { padding:0 20px; gap:24px; }.flightFooter { padding:12px 19px; gap:20px; }.autopilotNote { font-size:6px; }.instructions { font-size:9px; }.crewCard,.settings { padding:18px; }.sideLabel { font-size:8px; }.crewMember { min-height:60px; }.crewMember strong { font-size:12px; }.crewMember small { font-size:8px; }.crewCard>p { font-size:9px; }.settings>p { font-size:10px; } }
+@media(max-width:600px) { .page { padding:0 12px; }.topbar { height:61px; gap:10px; }.club { display:none; }.back { font-size:11px; gap:7px; }.sound { min-height:44px; font-size:10px; padding:0 10px; }.heading { padding:23px 2px 20px; }.heading h1 { font-size:31px; letter-spacing:-1.5px; }.eyebrow { font-size:6px; letter-spacing:1.4px; }.missionTrack { margin-bottom:11px; }.missionStop { padding:10px 6px; gap:6px; }.missionStop>span { width:18px; height:18px; font-size:6px; }.missionStop small { font-size:4px; letter-spacing:.5px; margin-bottom:3px; }.missionStop strong { font-size:7px; }.missionStop>svg { display:none; }.hud { height:60px; padding:0 10px; gap:10px; }.levelLabel { gap:6px; }.levelLabel small { font-size:5px; letter-spacing:.5px; }.levelLabel strong { font-size:9px; }.liveDot { width:4px; height:4px; }.score { padding-left:10px; gap:4px; }.score strong { font-size:21px; }.score>span { font-size:4px; letter-spacing:.7px; }.lives { gap:3px; }.lives i { width:5px; height:12px; border-radius:2px; }.arenaTools { padding-left:4px; gap:0; }.arenaTools button { height:44px; width:44px; }.lobbySpace { min-height:290px; }.overlay { padding:17px; }.lobby { padding-left:6%; }.intro { max-width:90%; }.callup { font-size:4px; letter-spacing:.7px; padding:6px 7px; gap:5px; }.intro h2 { font-size:clamp(34px,8.7vw,49px); letter-spacing:-1.8px; margin:15px 0 11px; }.intro>p { font-size:9px; line-height:1.7; margin-bottom:16px; }.primary { min-height:46px; padding:10px 14px; font-size:10px; gap:20px; }.primary>span { font-size:17px; }.primary>svg { width:17px; height:17px; }.introHint { font-size:7px; margin-top:15px; gap:7px; }.introHint>span { font-size:23px; }.orbitBadge { width:77px; height:77px; right:6%; top:31%; opacity:.45; outline-offset:6px; box-shadow:0 0 0 18px #7a91a90a; }.orbitBadge>svg { width:26px; height:26px; }.orbitBadge>strong { font-size:6px; letter-spacing:1px; margin:5px 0; }.orbitBadge>span { font-size:3px; letter-spacing:.5px; }.flightFooter { min-height:60px; padding:10px 12px; gap:13px; }.blasterLabel { gap:7px; }.blasterLabel>svg { width:12px; }.blasterLabel small { font-size:4px; letter-spacing:.7px; }.blasterLabel strong { font-size:9px; }.tierLights { gap:3px; }.tierLights i { width:9px; height:4px; }.autopilotNote { display:none; }.tierLights { margin-left:auto; }.coach { min-height:58px; padding:12px 3px; gap:7px; }.coach p { font-size:9px; }.instructions { flex-wrap:wrap; gap:9px 13px; font-size:7px; padding:11px 3px; }.instructions>span:last-child { margin-left:0; }.sidebar { gap:14px; margin-top:5px; }.cardTop { height:33px; padding:0 10px; font-size:5px; letter-spacing:.5px; }.cardTop>svg { width:10px; }.portrait { height:242px; }.portrait>img { width:214px; height:300px; left:calc(50% - 107px); }.bigNumber { font-size:145px; letter-spacing:-12px; right:4px; }.nameplate { padding:40px 12px 18px; }.nameplate>small { font-size:4px; letter-spacing:.4px; }.nameplate h2 { font-size:24px; margin:7px 0 9px; }.captainRank { font-size:4px; letter-spacing:.4px; gap:5px; }.captainRank>span { width:3px; height:3px; }.records { padding:17px 7px; }.records strong { font-size:23px; }.records span { font-size:4px; letter-spacing:.5px; }.crewCard,.settings { padding:12px; }.sectionHeading { gap:3px; }.sideLabel { font-size:6px; letter-spacing:.6px; }.sectionHeading>span { font-size:4px; letter-spacing:.2px; }.crewMember { min-height:51px; padding:8px 0; gap:7px; }.crewAvatar { width:27px; height:29px; border-radius:6px; }.crewAvatar>svg { width:19px; height:19px; }.crewMember strong { font-size:10px; }.crewMember small { font-size:6px; margin-top:3px; }.crewStatus { font-size:12px; }.crewStatus>svg { width:10px; }.crewCard>p { font-size:7px; line-height:1.6; margin-top:7px; }.modePicker { gap:2px; padding:3px; margin:10px 0; }.modePicker button { font-size:8px; min-height:44px; padding:6px 3px; }.settings>p { font-size:8px; }.settings>p.saveNote { font-size:7px; padding-top:10px; margin-top:10px; }.footer { padding:23px 2px; font-size:5px; letter-spacing:.6px; }.footer>span:last-child { display:none; }.waveTag { top:10px; left:11px; font-size:5px; letter-spacing:.5px; padding:5px 6px; }.bossBar { top:10px; left:30%; right:19%; }.bossBar strong { font-size:6px; margin-bottom:5px; letter-spacing:0; }.bossBar>div { height:5px; }.upgradePop { padding:7px 10px; gap:6px; bottom:21%; }.upgradePop>svg { width:13px; }.upgradePop span { font-size:4px; letter-spacing:.7px; margin-bottom:4px; }.upgradePop strong { font-size:9px; }.resultSpace { min-height:350px; }.resultIcon { width:42px; height:42px; margin-bottom:12px; }.resultIcon>svg { width:26px; height:26px; }.resultCard .eyebrow { font-size:5px; letter-spacing:.7px; margin-bottom:9px; }.resultCard h2 { font-size:25px; letter-spacing:-1px; margin-bottom:10px; }.resultCard>p:not(.eyebrow) { font-size:9px; line-height:1.7; margin-bottom:16px; }.secondary { min-height:44px; font-size:8px; margin-top:5px; }.rescueReward { padding:13px 15px; margin:16px 0; }.rescueReward>span { font-size:4px; letter-spacing:.6px; margin-bottom:6px; }.rescueReward strong { font-size:10px; }.resultStats { gap:30px; margin:18px 0; }.resultStats strong { font-size:25px; }.resultStats small { font-size:13px; }.resultStats span { font-size:5px; margin-top:6px; letter-spacing:.6px; }.savedCrew { gap:18px; margin:17px 0; }.savedCrew svg { width:21px; height:21px; }.savedCrew small { font-size:6px; margin-top:6px; }.arena:fullscreen .hud,.arena:fullscreen .space,.arena:fullscreen .flightFooter { width:min(100%,calc((100vh - 120px)*1.333333)); width:min(100%,calc((100dvh - 120px)*1.333333)); } }
+@media(max-width:380px) { .page { padding:0 8px; }.heading h1 { font-size:28px; }.missionStop { gap:4px; padding:10px 5px; }.missionStop strong { font-size:6px; }.missionStop small { font-size:3.5px; }.hud { padding:0 8px; gap:7px; }.levelLabel strong { font-size:8px; }.levelLabel { gap:4px; }.score { padding-left:7px; }.score strong { font-size:19px; }.lives { gap:2px; }.lives i { width:4px; height:10px; }.score>span { display:none; }.arenaTools { padding-left:1px; }.intro h2 { font-size:32px; }.intro>p { font-size:8px; }.orbitBadge { display:none; }.captainRank { font-size:3.5px; }.records strong { font-size:20px; } }
+@media(orientation:landscape) and (max-height:650px) and (min-width:601px) { .page { padding:0 16px; }.topbar { height:54px; }.heading { padding:18px 0; }.heading h1 { font-size:31px; }.heading .eyebrow { font-size:6px; margin-bottom:7px; }.layout { grid-template-columns:minmax(0,1fr) 205px; gap:15px; }.sidebar { display:flex; padding-top:0; gap:14px; }.portrait { height:228px; }.portrait>img { width:220px; height:308px; left:calc(50% - 110px); }.nameplate { padding:35px 14px 17px; }.nameplate h2 { font-size:25px; }.records { padding:17px 8px; }.records strong { font-size:25px; }.missionStop { padding:10px 8px; gap:6px; }.missionStop>svg { display:none; }.missionStop strong { font-size:8px; }.missionStop small { font-size:4px; }.missionStop>span { width:21px; height:21px; font-size:7px; }.hud { height:60px; padding:0 12px; gap:15px; }.levelLabel strong { font-size:10px; }.score strong { font-size:23px; }.score { padding-left:13px; }.arenaTools { padding-left:5px; }.flightFooter { min-height:60px; padding:10px 14px; }.autopilotNote { font-size:5px; }.space { width:min(100%,calc((100vh - 124px)*1.333333)); width:min(100%,calc((100dvh - 124px)*1.333333)); margin-inline:auto; }.intro h2 { font-size:43px; margin:16px 0 13px; }.intro>p { font-size:10px; margin-bottom:17px; }.introHint { font-size:8px; margin-top:17px; }.callup { font-size:6px; padding:6px 8px; }.primary { min-height:48px; padding:11px 16px; font-size:11px; }.orbitBadge { width:104px; height:104px; right:6%; }.orbitBadge>strong { font-size:10px; }.orbitBadge>svg { width:34px; height:34px; }.orbitBadge>span { font-size:4px; }.crewCard,.settings { padding:14px; }.crewMember { min-height:55px; }.crewMember strong { font-size:11px; }.crewMember small { font-size:7px; }.crewCard>p { font-size:8px; }.settings>p { font-size:9px; }.sideLabel { font-size:7px; }.resultIcon { width:43px; height:43px; margin-bottom:12px; }.resultCard h2 { font-size:29px; margin-bottom:10px; }.resultCard>p:not(.eyebrow) { font-size:10px; margin-bottom:15px; }.resultCard .eyebrow { font-size:6px; margin-bottom:9px; }.resultStats { margin:17px 0; }.resultStats strong { font-size:25px; }.rescueReward { margin:16px 0; padding:13px 20px; }.savedCrew { margin:17px 0; }.arena:fullscreen .hud,.arena:fullscreen .space,.arena:fullscreen .flightFooter { width:min(100%,calc((100vh - 120px)*1.333333)); width:min(100%,calc((100dvh - 120px)*1.333333)); } }
+@media(prefers-reduced-motion:reduce) { .primary { transition:none; } }
