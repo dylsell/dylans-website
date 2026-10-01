@@ -1,0 +1,179 @@
+.page { min-height:100vh; padding:0 36px; background:#172420; background-image:radial-gradient(ellipse at 12% 0%,#4d554235,transparent 60%); color:#f5efdc; font-family:var(--font-geist),Arial,sans-serif; }
+.shell { max-width:1360px; margin:0 auto; }
+.topbar { height:76px; display:flex; align-items:center; justify-content:space-between; gap:20px; border-bottom:1px solid #d0ccaa1a; }
+.back { min-height:48px; display:flex; align-items:center; gap:10px; font-size:12px; color:#bfcbbe; text-decoration:none; }
+.back:hover { color:#fff9de; }
+.club { display:flex; align-items:center; gap:10px; font-size:9px; font-weight:650; letter-spacing:2px; color:#c5d0b7; }
+.club svg { color:#e4b776; }
+.sound { min-height:46px; display:flex; align-items:center; gap:8px; font-size:11px; padding:0 13px; border:1px solid #b8c8ad30; background:#25372e; border-radius:7px; color:#e5e5ce; cursor:pointer; }
+.heading { display:flex; align-items:center; justify-content:space-between; gap:20px; padding:31px 0 29px; }
+.eyebrow { display:flex; align-items:center; gap:8px; color:#e8bd82; font-size:8px; font-weight:650; letter-spacing:2px; margin:0 0 11px; }
+.eyebrow>span { width:5px; height:5px; border-radius:50%; background:#e3ba7f; }
+.heading h1 { margin:0; font-size:clamp(31px,3.7vw,49px); font-weight:800; letter-spacing:-2px; line-height:1.07; }
+.heading h1 em { color:#e9bd85; font-style:normal; }
+.expedition { display:flex; align-items:center; gap:13px; border:1px solid #a3b1962b; border-radius:7px; padding:11px 15px; color:#d3c7a4; }
+.expedition span { display:block; font-size:7px; letter-spacing:1.5px; color:#a7b398; margin-bottom:5px; }
+.expedition strong { display:block; font-size:10px; font-weight:500; }
+.expedition svg { color:#d0ac77; }
+.layout { display:grid; grid-template-columns:minmax(0,1fr) 254px; gap:23px; align-items:start; }
+.gameColumn { min-width:0; }
+.journey { display:flex; border:1px solid #a5bb8d30; border-radius:8px; overflow:hidden; background:#1c3027; margin-bottom:15px; }
+.journeyStop { flex:1; display:flex; align-items:center; gap:10px; padding:13px 15px; border-right:1px solid #b3c09418; color:#93a28b; }
+.journeyStop:last-child { border:0; }
+.journeyStop>span { width:26px; height:26px; display:grid; place-items:center; border:1px solid #a6b39444; border-radius:50%; font-size:9px; flex-shrink:0; }
+.journeyStop small { display:block; font-size:6px; letter-spacing:1px; margin-bottom:4px; }
+.journeyStop strong { display:block; font-size:10px; font-weight:600; }
+.currentStop { background:#374936; color:#f0e7c6; box-shadow:inset 0 -2px #e3bc7c; }
+.currentStop>span { background:#e3bc7c; color:#2f402e; border-color:#e3bc7c; font-weight:700; }
+.currentStop small { color:#c6d0ab; }
+.doneStop { color:#bde3a1; }
+.arena { border:1px solid #abc39555; border-radius:12px; overflow:hidden; box-shadow:0 17px 60px #0003; background:#1e372d; }
+.hud { height:70px; display:flex; align-items:center; gap:28px; padding:0 20px; background:#f2ecd8; color:#2c432e; }
+.distance { display:flex; align-items:center; gap:10px; }
+.distance>svg { color:#70854f; }
+.distance>strong { font-size:30px; font-weight:800; letter-spacing:-1px; font-variant-numeric:tabular-nums; line-height:1; }
+.distance small { font-size:16px; margin-left:3px; letter-spacing:0; }
+.distance>span { font-size:7px; letter-spacing:.6px; color:#818566; align-self:flex-end; padding-bottom:3px; }
+.starCount { display:flex; align-items:center; gap:6px; padding-left:25px; border-left:1px solid #2f482d22; }
+.starCount svg { color:#a26f29; fill:#f0c96e45; }
+.starCount strong { font-size:24px; font-weight:750; font-variant-numeric:tabular-nums; }
+.starCount>span { font-size:6px; letter-spacing:.8px; color:#878665; }
+.hearts { display:flex; gap:6px; margin-left:auto; align-items:center; }
+.hearts span { display:flex; }
+.fullHeart { color:#c77656; }
+.emptyHeart { color:#bfb9a1; }
+.arenaTools { display:flex; gap:1px; border-left:1px solid #253d2925; padding-left:9px; margin-left:2px; }
+.arenaTools button { height:46px; width:41px; display:grid; place-items:center; color:#476244; border:0; border-radius:5px; background:transparent; cursor:pointer; }
+.arenaTools button:hover { background:#253c2810; }
+.arenaTools button:disabled { opacity:.25; cursor:default; }
+.world { position:relative; width:100%; aspect-ratio:960/540; background:#7c9d6f; }
+.canvas { display:block; width:100%; height:auto; aspect-ratio:960/540; touch-action:none; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; outline-offset:-4px; }
+.canvas:focus-visible { outline:3px solid #f6d793; }
+.regionTag { position:absolute; top:16px; left:18px; display:flex; align-items:center; gap:7px; padding:7px 10px; font-size:8px; font-weight:600; letter-spacing:.7px; color:#f7edcd; background:#173c31ad; border:1px solid #e7edc833; border-radius:4px; pointer-events:none; }
+.regionTag>span { width:5px; height:5px; border-radius:50%; background:#e8c57a; }
+.combo { position:absolute; top:18px; right:18px; display:flex; align-items:center; gap:7px; color:#fff0a9; padding:5px 8px; background:#294237b5; border-radius:4px; font-size:8px; font-weight:650; letter-spacing:1px; pointer-events:none; }
+.shieldStatus { position:absolute; top:53px; left:18px; display:flex; align-items:center; gap:6px; padding:7px 9px 10px; border:1px solid #f3dda971; border-radius:4px; background:#284b3ddd; color:#f3dc9b; font-size:8px; overflow:hidden; pointer-events:none; }
+.shieldStatus strong { font-size:7px; letter-spacing:.8px; }
+.shieldStatus>span { margin-left:7px; }
+.shieldStatus>i { position:absolute; bottom:0; left:0; width:100%; height:3px; background:#f3dc9b; transform-origin:left; }
+.firstTip { position:absolute; top:18px; right:18px; color:#eff2cf; background:#173a31b8; border:1px solid #e9ecb833; border-radius:4px; padding:7px 11px; font-size:9px; pointer-events:none; }
+.firstTip>span { margin:0 5px; color:#dcbc78; }
+.overlay { position:absolute; inset:0; display:flex; align-items:flex-start; justify-content:center; padding:25px; background:#122b26ec; overflow-y:auto; }
+.lobby { justify-content:flex-start; padding-left:6%; background:linear-gradient(90deg,#152e27f5 0%,#183c2bdf 35%,#20453550 75%,#173d3122); overflow:hidden; }
+.intro { position:relative; z-index:1; margin:auto 0; max-width:80%; }
+.trailTicket { display:inline-flex; align-items:center; gap:7px; font-size:7px; letter-spacing:1.2px; font-weight:600; padding:7px 9px; border:1px solid #c7d29d3d; background:#94ad5c12; color:#d5ddbd; border-radius:3px; }
+.trailTicket svg { color:#e0c697; }
+.intro h2 { margin:18px 0 15px; font-size:clamp(37px,4.8vw,68px); letter-spacing:-3px; font-weight:850; line-height:1.03; }
+.intro h2 em { font-style:normal; color:#efd0a0; }
+.intro>p { font-size:11px; color:#bdcbb2; line-height:1.8; margin:0 0 21px; }
+.primary { display:inline-flex; align-items:center; justify-content:center; gap:25px; min-height:52px; padding:14px 20px; background:#edbc80; color:#2e3c29; border:1px solid #f6d5a4; border-radius:7px; font-size:12px; font-weight:800; cursor:pointer; transition:background .15s; }
+.primary:hover { background:#f5d39f; }
+.primary>span { font-size:21px; font-weight:400; line-height:1; }
+.primary:disabled { opacity:.5; cursor:default; }
+.introNotes { display:flex; align-items:center; gap:8px; margin-top:17px; color:#becdaa; font-size:8px; letter-spacing:.2px; }
+.introNotes i { width:3px; height:3px; border-radius:50%; background:#859c75; }
+.trailSeal { position:absolute; top:34%; right:7%; width:133px; height:133px; border:1px solid #eff1ce7a; outline:1px solid #eff1ce4a; outline-offset:6px; border-radius:50%; color:#f2e5ba; display:flex; align-items:center; flex-direction:column; justify-content:center; background:#224d3936; transform:rotate(12deg); text-align:center; }
+.trailSeal strong { font-size:13px; line-height:1.2; letter-spacing:1.4px; font-weight:750; margin:3px 0 9px; }
+.trailSeal small { font-size:5px; letter-spacing:1.4px; }
+.trailSeal svg { margin-top:-5px; }
+.resultCard { max-width:530px; text-align:center; margin:auto; }
+.resultIcon { display:grid; place-items:center; width:58px; height:58px; color:#dab47d; background:#d9b57011; border:1px solid #d9b57042; border-radius:50%; margin:0 auto 16px; }
+.goldIcon { color:#f3d690; background:#ddc98817; border-color:#edc97560; }
+.resultCard .eyebrow { justify-content:center; font-size:7px; letter-spacing:1.5px; margin-bottom:11px; }
+.resultCard h2 { margin:0 0 12px; font-size:clamp(24px,3vw,40px); font-weight:800; line-height:1.1; letter-spacing:-1.5px; }
+.resultCard>p:not(.eyebrow) { margin:0 0 20px; color:#b4c4ab; font-size:11px; line-height:1.7; }
+.resultStats { display:flex; justify-content:center; gap:34px; margin:21px 0; }
+.resultStats strong { display:block; color:#ede8ce; font-size:28px; font-weight:700; line-height:1; }
+.resultStats small { font-size:14px; margin-left:3px; color:#adbd97; }
+.resultStats span { display:block; color:#aaba98; font-size:6px; letter-spacing:.9px; margin-top:8px; }
+.extraAction { display:block; min-height:44px; margin:5px auto 0; padding:7px; font-size:10px; color:#d1d6ab; text-decoration:underline; cursor:pointer; }
+.trailProgress { height:39px; display:flex; align-items:center; gap:13px; padding:0 19px; color:#b1c399; background:#1b352b; border-top:1px solid #c2cb9e19; }
+.trailProgress>span { display:flex; align-items:center; gap:7px; font-size:6px; letter-spacing:1px; white-space:nowrap; }
+.trailProgress>div { position:relative; flex:1; height:4px; border-radius:4px; background:#96ad7740; }
+.trailProgress i { display:block; height:100%; border-radius:4px; background:#dfb579; max-width:100%; }
+.trailProgress b { position:absolute; top:-2px; height:8px; width:3px; background:#c3d0a2; border:1px solid #36513a; }
+.controlsBar { display:flex; align-items:center; gap:22px; background:#283d2e; padding:15px 19px; border-top:1px solid #d5d4a21c; }
+.jumpInfo { flex:1; min-width:0; }
+.jumpInfo>span { display:block; color:#a9bb93; font-size:6px; letter-spacing:1.4px; margin-bottom:6px; }
+.jumpInfo strong { font-size:11px; color:#d3dec0; font-weight:500; }
+.jumpButton { position:relative; display:flex; align-items:center; justify-content:center; gap:18px; width:49%; min-height:62px; background:#e8b578; color:#35412b; border:1px solid #f2d09b; border-radius:7px; cursor:pointer; touch-action:none; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; }
+.jumpButton:active:not(:disabled) { background:#f8d69d; }
+.jumpButton:disabled { background:#d4b78225; border-color:#cbb98c30; color:#8e9b7a; cursor:default; }
+.jumpArrow { font-family:Arial,sans-serif; font-size:29px; line-height:1; font-weight:400; }
+.jumpButton>span:nth-child(2) { font-size:18px; font-weight:850; letter-spacing:1px; }
+.jumpButton small { display:block; font-size:5px; font-weight:600; letter-spacing:.8px; margin-top:5px; opacity:.7; }
+.jumpDots { position:absolute; right:14px; display:flex; flex-direction:column; gap:5px; }
+.jumpDots i { width:5px; height:5px; border:1px solid currentColor; opacity:.35; border-radius:50%; }
+.jumpDots .jumpReady { background:currentColor; opacity:.8; }
+.coach { display:flex; align-items:center; gap:8px; padding:15px 3px; min-height:54px; }
+.coach>svg { flex-shrink:0; color:#d4b281; }
+.coach p { margin:0; font-size:10px; line-height:1.5; color:#b8c9ad; }
+.coach>span { font-size:8px; color:#c9cda3; margin-left:auto; white-space:nowrap; letter-spacing:.7px; }
+.instructions { display:flex; gap:17px; align-items:center; border-top:1px solid #b8c19c1d; padding:12px 3px; color:#809a7e; font-size:8px; }
+.instructions>span:last-child { margin-left:auto; }
+.sidebar { display:flex; flex-direction:column; gap:17px; }
+.passport { overflow:hidden; border:1px solid #a4b89050; border-radius:10px; background:#e9dfc1; color:#2e4432; }
+.passportTop { display:flex; align-items:center; gap:7px; padding:11px 14px; border-bottom:1px solid #9d98693d; font-size:6px; font-weight:750; letter-spacing:1px; }
+.passportTop>span:last-child { margin-left:auto; color:#7d8966; font-size:8px; }
+.portrait { height:277px; position:relative; overflow:hidden; background:linear-gradient(155deg,#ded4aa,#b9bf8e); }
+.explorerLines { position:absolute; inset:0; background:repeating-linear-gradient(30deg,transparent 0 28px,#5666450d 28px 29px); }
+.portrait>img { position:absolute; width:234px; height:320px; object-fit:cover; object-position:50% 10%; left:calc(50% - 117px); top:7px; border-radius:45% 45% 0 0; mask-image:linear-gradient(black 30%,transparent 92%); }
+.passportStamp { position:absolute; top:20px; right:12px; display:block; padding:7px; border:1px solid #4b6c4699; outline:1px solid #4b6c4633; outline-offset:3px; color:#3c653a; transform:rotate(10deg); font-size:5px; letter-spacing:.5px; text-align:center; background:#dce0b75a; }
+.passportStamp strong { font-size:6px; }
+.nameplate { position:absolute; bottom:0; left:0; right:0; padding:45px 18px 17px; background:linear-gradient(transparent,#d7d3aebe 50%,#d7d3ae); }
+.nameplate>small { font-size:5px; letter-spacing:1.3px; color:#55704e; }
+.nameplate h2 { font-size:27px; font-weight:850; letter-spacing:1px; line-height:1; margin:7px 0 0; }
+.nameplate h2>span { display:block; margin-top:3px; }
+.records { display:grid; grid-template-columns:1fr 1fr; padding:17px 10px; text-align:center; }
+.records>div+div { border-left:1px solid #43593625; }
+.records strong { display:block; font-size:26px; font-weight:750; line-height:1; }
+.records small { font-size:12px; margin-left:2px; font-weight:600; color:#72805b; }
+.records span { display:block; font-size:5px; font-weight:600; letter-spacing:.9px; margin-top:7px; color:#7c845c; }
+.settings { border:1px solid #9bab8030; padding:16px; border-radius:9px; background:#20332a; }
+.sideLabel { font-size:7px; letter-spacing:1.2px; font-weight:650; color:#c4cead; margin:0; }
+.modePicker { display:flex; gap:4px; margin:12px 0 10px; border:1px solid #a5b28a18; background:#14271f; border-radius:6px; padding:4px; }
+.modePicker button { flex:1; font-size:10px; min-height:44px; padding:7px 5px; color:#96ad8c; border:1px solid transparent; border-radius:4px; cursor:pointer; }
+.modePicker button.selected { background:#dcca9f; border-color:#e9d8b3; color:#384c2c; font-weight:700; }
+.modePicker button:disabled,.paceRow button:disabled { cursor:default; }
+.settings>p { margin:0; font-size:9px; line-height:1.8; color:#a4b396; }
+.paceRow { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:5px; padding-top:12px; margin-top:12px; border-top:1px solid #a6b38b21; }
+.paceRow>span { font-size:6px; letter-spacing:.6px; color:#b3be9d; }
+.paceRow>div { display:flex; gap:5px; }
+.paceRow button { min-height:44px; padding:7px 9px; color:#8ca281; font-size:9px; border:1px solid transparent; border-radius:5px; cursor:pointer; }
+.paceRow button.activePace { border-color:#b2c09645; color:#ead5a5; background:#3c4b322e; }
+.settings p.paceNote { margin-top:8px; font-size:8px; color:#8eaa86; }
+.badges { padding:3px 2px; }
+.badgeHeading { display:flex; justify-content:space-between; align-items:center; gap:4px; margin-bottom:6px; }
+.badgeHeading>span { color:#819979; font-size:7px; }
+.badge { display:flex; gap:10px; align-items:center; padding:11px 0; border-bottom:1px solid #acb68a1c; color:#839a79; }
+.badge>span { width:34px; height:35px; display:grid; place-items:center; border-radius:50%; border:1px solid #a0b28636; background:#21372a; flex-shrink:0; }
+.badge strong { display:block; font-size:10px; font-weight:550; margin-bottom:5px; }
+.badge small { display:block; font-size:5px; letter-spacing:.8px; color:#7d9573; }
+.five { font-size:21px; font-weight:800; font-style:italic; }
+.earned { color:#e3d3a7; }
+.earned>span { color:#e5c084; border-color:#d4b57d70; background:#c4ab6c11; }
+.earned small { color:#b7c59b; }
+.saveNote { font-size:8px; color:#849b79; line-height:1.7; margin:12px 0 0; }
+.footer { display:flex; gap:8px; align-items:center; padding:26px 0; color:#7b9273; font-size:6px; letter-spacing:1px; }
+.footer>svg { color:#c1b286; }
+.footer>span:last-child { margin-left:auto; color:#6d8667; }
+.canvasError { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px; text-align:center; background:#213b2a; z-index:5; }
+.canvasError h2 { font-size:23px; font-weight:750; }
+.canvasError p { margin:15px 0; font-size:12px; }
+.canvasError a { text-decoration:underline; padding:15px; }
+.page button:focus-visible,.page a:focus-visible { outline:3px solid #f4ce8f; outline-offset:3px; }
+.hud button:focus-visible { outline-color:#39593a; }
+.arena:fullscreen { display:flex; flex-direction:column; align-items:center; justify-content:center; width:100%; height:100%; background:#14251d; border:0; border-radius:0; }
+.arena:fullscreen .hud,.arena:fullscreen .world,.arena:fullscreen .trailProgress,.arena:fullscreen .controlsBar { width:min(100%,calc((100vh - 202px)*1.777778)); width:min(100%,calc((100dvh - 202px)*1.777778)); flex-shrink:0; }
+.arena:fullscreen .resultWorld { min-height:0; }
+@media(min-width:1550px) { .page { padding:0 60px; } }
+@media(max-width:1150px) { .page { padding:0 24px; }.layout { grid-template-columns:minmax(0,1fr) 225px; gap:18px; }.journeyStop { padding:12px 9px; gap:7px; }.journeyStop strong { font-size:9px; }.journeyStop small { font-size:5px; letter-spacing:.6px; }.journeyStop>span { width:23px; height:23px; font-size:8px; }.hud { gap:18px; padding:0 15px; }.starCount { padding-left:17px; }.intro h2 { font-size:50px; }.intro>p { font-size:10px; }.trailSeal { right:6%; width:105px; height:105px; }.trailSeal svg { width:34px; height:34px; }.trailSeal strong { font-size:10px; }.trailSeal small { font-size:4px; }.controlsBar { padding:13px 15px; gap:13px; }.jumpInfo strong { font-size:10px; }.settings { padding:14px; }.expedition { padding:10px 12px; }.expedition strong { font-size:9px; }.expedition span { font-size:6px; }.paceRow button { padding:7px; } }
+@media(max-width:950px) { .layout { grid-template-columns:1fr; }.sidebar { display:grid; grid-template-columns:1fr 1fr; gap:17px 22px; padding-top:5px; }.passport { grid-row:span 2; }.portrait { height:279px; }.portrait>img { width:250px; height:342px; left:calc(50% - 125px); }.passportStamp { right:20px; top:24px; }.nameplate h2 { font-size:32px; }.nameplate { padding:45px 20px 20px; }.nameplate>small { font-size:6px; }.records { padding:20px 10px; }.records span { font-size:6px; }.topbar { height:68px; }.heading { padding:25px 0; }.heading h1 { font-size:39px; }.expedition { display:none; }.club { font-size:8px; letter-spacing:1.1px; }.journeyStop { padding:13px; gap:10px; }.journeyStop strong { font-size:10px; }.journeyStop small { font-size:6px; }.journeyStop>span { width:27px; height:27px; }.intro h2 { font-size:clamp(46px,7.1vw,65px); }.intro>p { font-size:12px; }.introNotes { font-size:9px; }.trailSeal { width:128px; height:128px; right:7%; }.trailSeal strong { font-size:12px; }.trailSeal svg { width:40px; height:40px; }.trailSeal small { font-size:5px; }.hud { gap:27px; padding:0 20px; }.starCount { padding-left:25px; }.controlsBar { padding:15px 19px; gap:22px; }.jumpInfo strong { font-size:12px; }.settings { padding:18px; }.sideLabel { font-size:8px; }.settings>p { font-size:10px; }.settings p.paceNote { font-size:9px; }.modePicker button { font-size:11px; }.paceRow button { font-size:10px; padding:8px 12px; }.paceRow>span { font-size:7px; }.badge { padding:13px 0; }.badge strong { font-size:11px; }.badge small { font-size:6px; } }
+@media(max-width:600px) { .page { padding:0 12px; }.topbar { height:61px; gap:10px; }.club { display:none; }.back { font-size:11px; gap:7px; }.sound { font-size:10px; min-height:44px; padding:0 10px; }.heading { padding:23px 2px 21px; }.heading h1 { font-size:33px; letter-spacing:-1.5px; }.eyebrow { font-size:6px; letter-spacing:1.5px; }.journey { margin-bottom:11px; }.journeyStop { padding:10px 7px; gap:6px; }.journeyStop>span { width:19px; height:19px; font-size:7px; }.journeyStop small { font-size:4px; letter-spacing:.3px; margin-bottom:4px; }.journeyStop strong { font-size:7px; line-height:1.3; }.hud { height:60px; padding:0 10px; gap:10px; }.distance { gap:6px; }.distance>strong { font-size:25px; }.distance>svg { width:18px; height:18px; }.distance small { font-size:12px; margin-left:2px; }.distance>span { display:none; }.starCount { padding-left:10px; gap:4px; }.starCount strong { font-size:20px; }.starCount>span { display:none; }.starCount>svg { width:17px; }.hearts { gap:4px; }.hearts svg { width:17px; height:17px; }.arenaTools { padding-left:4px; margin-left:0; }.arenaTools button { width:34px; min-height:44px; height:44px; }.world { aspect-ratio:960/540; }.overlay { padding:16px; }.lobby { padding-left:6%; }.intro { max-width:86%; }.trailTicket { font-size:4px; letter-spacing:.7px; padding:4px 6px; gap:5px; }.trailTicket svg { width:11px; height:11px; }.intro h2 { font-size:clamp(29px,7.5vw,42px); letter-spacing:-1.5px; margin:10px 0 8px; }.intro>p { font-size:8px; line-height:1.65; margin-bottom:11px; }.primary { min-height:46px; font-size:10px; padding:10px 13px; gap:19px; }.primary>span { font-size:17px; }.introNotes { margin-top:10px; font-size:6px; gap:6px; }.trailSeal { width:70px; height:70px; right:5%; top:36%; opacity:.55; outline-offset:4px; }.trailSeal svg { width:22px; height:22px; }.trailSeal strong { font-size:7px; letter-spacing:.7px; margin:0 0 4px; }.trailSeal small { font-size:3px; letter-spacing:.5px; }.trailProgress { height:33px; gap:9px; padding:0 11px; }.trailProgress>span { font-size:4px; letter-spacing:.5px; gap:5px; }.trailProgress svg { width:12px; }.controlsBar { padding:11px; gap:10px; }.jumpInfo>span { font-size:4px; letter-spacing:.8px; margin-bottom:5px; }.jumpInfo strong { font-size:8px; line-height:1.5; display:block; max-width:119px; }.jumpButton { width:55%; min-height:60px; gap:10px; }.jumpArrow { font-size:25px; }.jumpButton>span:nth-child(2) { font-size:16px; }.jumpButton small { font-size:4px; letter-spacing:.4px; }.jumpDots { right:9px; gap:4px; }.jumpDots i { width:4px; height:4px; }.coach { gap:7px; padding:12px 3px; min-height:58px; }.coach p { font-size:9px; }.coach>span { font-size:6px; }.instructions { gap:9px; flex-wrap:wrap; font-size:7px; padding:11px 3px; }.instructions>span:last-child { display:none; }.sidebar { gap:14px; margin-top:5px; }.passportTop { padding:9px 10px; gap:5px; font-size:5px; letter-spacing:.5px; }.passportTop>span:last-child { font-size:6px; }.passportTop svg { width:13px; height:13px; }.portrait { height:228px; }.portrait>img { width:200px; height:273px; left:calc(50% - 100px); }.passportStamp { top:14px; right:10px; padding:5px; font-size:4px; letter-spacing:.2px; }.passportStamp strong { font-size:4px; }.nameplate { padding:35px 12px 17px; }.nameplate>small { font-size:4px; letter-spacing:.5px; }.nameplate h2 { font-size:23px; }.records { padding:17px 6px; }.records strong { font-size:22px; }.records small { font-size:9px; }.records span { font-size:4px; letter-spacing:.3px; }.settings { padding:12px; }.sideLabel { font-size:6px; letter-spacing:.6px; line-height:1.5; }.modePicker { padding:3px; gap:2px; margin:10px 0; }.modePicker button { font-size:8px; padding:6px 3px; min-height:44px; }.settings>p { font-size:8px; line-height:1.75; }.paceRow { display:block; padding-top:10px; margin-top:10px; }.paceRow>span { display:block; font-size:5px; margin-bottom:4px; }.paceRow>div { gap:4px; }.paceRow button { font-size:8px; padding:6px; min-height:44px; flex:1; }.settings p.paceNote { font-size:7px; margin-top:6px; }.badgeHeading { gap:3px; }.badgeHeading>span { font-size:6px; }.badge { padding:10px 0; gap:7px; }.badge>span { width:27px; height:29px; }.badge svg { width:20px; height:20px; }.badge strong { font-size:9px; margin-bottom:4px; }.badge small { font-size:4px; letter-spacing:.15px; line-height:1.5; }.five { font-size:18px; }.saveNote { font-size:7px; line-height:1.6; }.footer { font-size:5px; letter-spacing:.6px; padding:23px 2px; }.footer>span:last-child { display:none; }.regionTag { top:11px; left:11px; font-size:6px; padding:5px 7px; gap:5px; }.regionTag>span { width:4px; height:4px; }.firstTip { top:11px; right:11px; font-size:6px; padding:5px 7px; }.firstTip>span { margin:0 3px; }.combo { top:10px; right:11px; font-size:6px; gap:4px; padding:4px 6px; letter-spacing:.4px; }.combo svg { width:12px; height:12px; }.shieldStatus { top:40px; left:11px; padding:5px 7px 8px; font-size:6px; }.shieldStatus strong { font-size:5px; letter-spacing:.4px; }.shieldStatus svg { width:13px; height:13px; }.shieldStatus>span { margin-left:3px; }.resultWorld { min-height:315px; }.resultIcon { width:39px; height:39px; margin-bottom:11px; }.resultIcon svg { width:24px; height:24px; }.resultCard .eyebrow { font-size:5px; letter-spacing:.7px; margin-bottom:8px; }.resultCard h2 { font-size:24px; margin-bottom:9px; letter-spacing:-1px; }.resultCard>p:not(.eyebrow) { font-size:9px; line-height:1.6; margin-bottom:13px; }.resultStats { gap:24px; margin:16px 0; }.resultStats strong { font-size:24px; }.resultStats small { font-size:11px; }.resultStats span { font-size:5px; letter-spacing:.5px; margin-top:6px; }.extraAction { min-height:44px; font-size:8px; padding:7px; }.arena:fullscreen .hud,.arena:fullscreen .world,.arena:fullscreen .trailProgress,.arena:fullscreen .controlsBar { width:min(100%,calc((100vh - 176px)*1.777778)); width:min(100%,calc((100dvh - 176px)*1.777778)); } }
+@media(max-width:380px) { .page { padding:0 8px; }.heading h1 { font-size:30px; }.journeyStop { gap:4px; padding:10px 5px; }.journeyStop strong { font-size:6px; }.journeyStop small { font-size:3.5px; }.introNotes { display:none; }.intro h2 { font-size:28px; margin:9px 0 7px; }.intro>p { font-size:7px; }.trailSeal { display:none; }.hud { gap:8px; padding:0 8px; }.hearts { gap:3px; }.hearts svg { width:15px; }.arenaTools button { width:32px; }.distance>svg { display:none; }.firstTip { font-size:5px; }.regionTag { font-size:5px; } }
+@media(orientation:landscape) and (max-height:650px) and (min-width:601px) { .page { padding:0 16px; }.topbar { height:54px; }.heading { padding:17px 0 18px; }.heading h1 { font-size:31px; }.heading .eyebrow { font-size:6px; margin-bottom:7px; }.layout { grid-template-columns:minmax(0,1fr) 205px; gap:15px; }.sidebar { display:flex; padding-top:0; gap:14px; }.journeyStop { padding:10px 8px; gap:7px; }.journeyStop>span { width:22px; height:22px; font-size:7px; }.journeyStop strong { font-size:8px; }.journeyStop small { font-size:4px; }.portrait { height:208px; }.portrait>img { width:192px; height:262px; left:calc(50% - 96px); }.nameplate h2 { font-size:24px; }.nameplate { padding:35px 14px 15px; }.passportStamp { top:15px; right:10px; }.records { padding:15px 8px; }.settings { padding:14px; }.sideLabel { font-size:7px; }.settings>p { font-size:9px; }.paceRow button { font-size:9px; padding:7px; }.paceRow>span { font-size:6px; }.hud { height:58px; gap:15px; padding:0 12px; }.distance>span { display:none; }.distance>strong { font-size:26px; }.starCount { padding-left:16px; }.starCount>span { display:none; }.hearts { gap:5px; }.hearts svg { width:19px; }.arenaTools button { width:37px; }.intro h2 { font-size:39px; margin:13px 0 10px; }.intro>p { font-size:9px; margin-bottom:14px; }.trailTicket { font-size:6px; padding:5px 7px; }.primary { min-height:48px; padding:11px 16px; font-size:10px; }.introNotes { font-size:7px; margin-top:13px; }.trailSeal { width:98px; height:98px; }.trailSeal strong { font-size:9px; }.trailSeal svg { width:32px; height:32px; }.trailSeal small { font-size:4px; }.controlsBar { padding:10px 13px; gap:15px; }.jumpButton { min-height:57px; }.jumpInfo strong { font-size:10px; }.trailProgress { height:31px; }.resultIcon { width:40px; height:40px; margin-bottom:9px; }.resultCard .eyebrow { font-size:6px; margin-bottom:7px; }.resultCard h2 { font-size:29px; margin-bottom:8px; }.resultCard>p:not(.eyebrow) { font-size:10px; margin-bottom:12px; }.resultStats { margin:13px 0; }.resultStats strong { font-size:25px; }.arena:fullscreen .hud,.arena:fullscreen .world,.arena:fullscreen .trailProgress,.arena:fullscreen .controlsBar { width:min(100%,calc((100vh - 167px)*1.777778)); width:min(100%,calc((100dvh - 167px)*1.777778)); } }
+@media(prefers-reduced-motion:reduce) { .primary { transition:none; } }
+/* Small hands get full touch targets, even in landscape. */
+.arenaTools button { min-width:44px; }
+@media(max-width:600px) { .lobbyWorld { min-height:250px; } }
+.arena:fullscreen .lobbyWorld { min-height:0; }
