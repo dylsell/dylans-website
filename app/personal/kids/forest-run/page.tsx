@@ -1,695 +1,333 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
-import Nav from "../../../components/Nav";
+import Link from "next/link";
+import Image from "next/image";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { createGame, jump, REGIONS, startGame, stepGame, TOTAL_DISTANCE, WORLD } from "./lib/game";
+import type { Difficulty, GameEvent, Mode } from "./lib/game";
+import { createForestRenderer } from "./lib/forest";
+import { ForestAudio } from "./lib/audio";
+import { DEFAULT_PROFILE, LEGACY_BEST_KEY, parseProfile, PROFILE_KEY } from "./lib/profile";
+import type { Profile } from "./lib/profile";
+import styles from "./forest.module.css";
 
-const CW = 900;
-const CH = 450;
-const GY = 342;
-const BX = 143;
-const BW = 75;
-const BH = 114;
-const GRAV = 0.58;
-const JVEL = -19;
-const POWER_FRAMES = 420; // ~7s of star power
-const SPIN_FRAMES = 28;   // double-jump front flip duration
-
-type Phase = "idle" | "running" | "dead";
-
-interface Log  { x: number; w: number; h: number }
-interface Coin { x: number; y: number; collected: boolean; animT: number }
-interface FarTree  { x: number; h: number }
-interface MidTree  { x: number; h: number; sp: number }
-interface Bush     { x: number; w: number; h: number }
-interface Cloud    { x: number; y: number; w: number; sp: number }
-interface StarPU   { x: number; y: number; animT: number }
-interface Fleck    { x: number; y: number; vx: number; vy: number; life: number; maxLife: number; size: number; color: string }
-
-// Sky colors: dawn → morning → day → sunset, keyed by score milestone
-const SKY_STOPS: [number, string, string][] = [
-  [0,   "#f4a261", "#f9d89c"],   // dawn
-  [60,  "#5bb8e8", "#a8d8a0"],   // day
-  [200, "#e07b39", "#f4c07a"],   // afternoon
-  [400, "#6b3fa0", "#e07b39"],   // dusk
-  [700, "#0d1b4b", "#3a1f6b"],   // night
-];
-
-function skyColor(score: number): [string, string] {
-  for (let i = SKY_STOPS.length - 1; i >= 0; i--) {
-    if (score >= SKY_STOPS[i][0]) return [SKY_STOPS[i][1], SKY_STOPS[i][2]];
-  }
-  return [SKY_STOPS[0][1], SKY_STOPS[0][2]];
+function Leaf({ size = 23 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 28 28" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 23 20 9M8 20C-1 9 12 4 24 3c-1 13-5 24-16 17Z" /><path d="m11 18 0-6m5 2h5" /></svg>;
 }
-
-function playRoar(ac: AudioContext) {
-  // Distortion waveshaper for growl
-  const shaper = ac.createWaveShaper();
-  const curve = new Float32Array(256);
-  for (let i = 0; i < 256; i++) {
-    const x = (i * 2) / 256 - 1;
-    curve[i] = (Math.PI + 400) * x / (Math.PI + 400 * Math.abs(x));
-  }
-  shaper.curve = curve;
-
-  // Main growl: sawtooth dropping in pitch
-  const osc1 = ac.createOscillator();
-  const gain1 = ac.createGain();
-  osc1.connect(shaper); shaper.connect(gain1); gain1.connect(ac.destination);
-  osc1.type = "sawtooth";
-  osc1.frequency.setValueAtTime(200, ac.currentTime);
-  osc1.frequency.exponentialRampToValueAtTime(55, ac.currentTime + 0.9);
-  gain1.gain.setValueAtTime(0.28, ac.currentTime);
-  gain1.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 1.1);
-  osc1.start(); osc1.stop(ac.currentTime + 1.1);
-
-  // Sub bass layer
-  const osc2 = ac.createOscillator();
-  const gain2 = ac.createGain();
-  osc2.connect(gain2); gain2.connect(ac.destination);
-  osc2.type = "sawtooth";
-  osc2.frequency.setValueAtTime(100, ac.currentTime);
-  osc2.frequency.exponentialRampToValueAtTime(28, ac.currentTime + 0.8);
-  gain2.gain.setValueAtTime(0.18, ac.currentTime);
-  gain2.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 1.0);
-  osc2.start(); osc2.stop(ac.currentTime + 1.0);
+function Star({ size = 23 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 28 28" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" aria-hidden="true"><path d="m14 3 3.4 6.9 7.6 1.1-5.5 5.4 1.3 7.6-6.8-3.6L7.2 24l1.3-7.6L3 11l7.6-1.1L14 3Z" /></svg>;
 }
-
-function rrect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.lineTo(x + w - r, y);
-  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-  ctx.lineTo(x + w, y + h - r);
-  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-  ctx.lineTo(x + r, y + h);
-  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-  ctx.lineTo(x, y + r);
-  ctx.quadraticCurveTo(x, y, x + r, y);
-  ctx.closePath();
+function Mountain({ size = 28 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 32 28" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" aria-hidden="true"><path d="m2 25 12-22 14 22H2Zm18-13 3-5 7 18M9 12l5 3 4-5" /></svg>;
 }
-
-function makeFarTrees(): FarTree[] {
-  return Array.from({ length: 12 }, (_, i) => ({
-    x: i * (CW / 12) + Math.random() * 30,
-    h: 52 + Math.random() * 45,
-  }));
+function Heart({ filled }: { filled: boolean }) {
+  return <svg width="22" height="22" viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><path d="M12 21 3.6 12.6C-3 6 6-2 12 5c6-7 15 1 8.4 7.6L12 21Z" /></svg>;
 }
-function makeMidTrees(): MidTree[] {
-  return Array.from({ length: 9 }, (_, i) => ({
-    x: i * (CW / 9) + Math.random() * 45,
-    h: 75 + Math.random() * 75,
-    sp: 1.0 + Math.random() * 0.8,
-  }));
-}
-function makeBushes(): Bush[] {
-  return Array.from({ length: 7 }, (_, i) => ({
-    x: i * (CW / 7) + Math.random() * 60,
-    w: 30 + Math.random() * 45,
-    h: 18 + Math.random() * 15,
-  }));
-}
-function makeClouds(): Cloud[] {
-  return Array.from({ length: 4 }, (_, i) => ({
-    x: i * (CW / 4) + Math.random() * 80,
-    y: 30 + Math.random() * 70,
-    w: 70 + Math.random() * 60,
-    sp: 0.15 + Math.random() * 0.25,
-  }));
-}
-function makeNightStars() {
-  return Array.from({ length: 30 }, () => ({
-    x: Math.random() * CW,
-    y: Math.random() * 180,
-    r: 0.8 + Math.random() * 1.4,
-  }));
-}
-
-const MILESTONES = [50, 100, 200, 300, 500, 750, 1000];
-const BEST_KEY = "forest-run-best";
 
 export default function ForestRun() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const raf = useRef(0);
-  const bradleyImg = useRef<HTMLImageElement | null>(null);
-  const audioCtx = useRef<AudioContext | null>(null);
-  const [phase, setPhase] = useState<Phase>("idle");
-  const [best, setBest] = useState(0);
-
-  const bloop = useRef((freq: number, dur: number, type: OscillatorType = "sine", vol = 0.12, freqEnd?: number) => {
-    const ac = audioCtx.current;
-    if (!ac) return;
-    const osc = ac.createOscillator();
-    const gain = ac.createGain();
-    osc.connect(gain); gain.connect(ac.destination);
-    osc.type = type;
-    osc.frequency.setValueAtTime(freq, ac.currentTime);
-    if (freqEnd) osc.frequency.exponentialRampToValueAtTime(freqEnd, ac.currentTime + dur);
-    gain.gain.setValueAtTime(vol, ac.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + dur);
-    osc.start(ac.currentTime);
-    osc.stop(ac.currentTime + dur);
-  });
-
-  const gs = useRef({
-    phase: "idle" as Phase,
-    by: GY - BH, vy: 0, grounded: true,
-    jumps: 0,          // jumps used since last landing (max 2)
-    spinT: 0,          // double-jump flip countdown
-    logs: [] as Log[],
-    coins: [] as Coin[],
-    farTrees: makeFarTrees(),
-    midTrees: makeMidTrees(),
-    bushes: makeBushes(),
-    clouds: makeClouds(),
-    nightStars: makeNightStars(),
-    flecks: [] as Fleck[],       // dust + smash particles
-    starPU: null as StarPU | null,
-    nextStar: 700,
-    power: 0,          // star-power frames remaining
-    frame: 0, speed: 4, score: 0, best: 0, coinsRun: 0,
-    nextLog: 90, nextCoin: 120,
-    flash: 0,         // death flash countdown
-    milestone: "",    // text to show
-    milestoneT: 0,    // countdown
-    passedMilestones: new Set<number>(),
-    bearLunge: 0,     // death pounce animation frames
-    deathAt: 0,       // so mashing jump doesn't instantly restart
-  });
-
-  const act = useCallback(() => {
-    if (!audioCtx.current) audioCtx.current = new AudioContext();
-    const s = gs.current;
-
-    const startRun = () => {
-      Object.assign(s, {
-        phase: "running",
-        by: GY - BH, vy: 0, grounded: true, jumps: 0, spinT: 0,
-        logs: [], coins: [], flecks: [],
-        farTrees: makeFarTrees(), midTrees: makeMidTrees(), bushes: makeBushes(),
-        starPU: null, nextStar: 700, power: 0,
-        frame: 0, speed: 4, score: 0, coinsRun: 0,
-        nextLog: 90, nextCoin: 120,
-        flash: 0, milestone: "", milestoneT: 0,
-        passedMilestones: new Set<number>(),
-        bearLunge: 0,
-      });
-      setPhase("running");
-      bloop.current(300, 0.12, "sine", 0.15, 500);
-    };
-
-    if (s.phase === "idle") {
-      startRun();
-    } else if (s.phase === "running") {
-      if (s.grounded) {
-        s.vy = JVEL;
-        s.grounded = false;
-        s.jumps = 1;
-        bloop.current(280, 0.14, "sine", 0.18, 560);
-      } else if (s.jumps < 2) {
-        // Double jump — with a front flip!
-        s.vy = JVEL * 0.85;
-        s.jumps = 2;
-        s.spinT = SPIN_FRAMES;
-        bloop.current(420, 0.14, "sine", 0.18, 840);
-      }
-    } else if (s.phase === "dead" && Date.now() - s.deathAt > 600) {
-      startRun();
+  const game = useRef(createGame());
+  const [view, setView] = useState(() => createGame());
+  const [profile, setProfile] = useState<Profile>({ ...DEFAULT_PROFILE });
+  const profileRef = useRef<Profile>({ ...DEFAULT_PROFILE });
+  const [message, setMessage] = useState("Your backpack is ready, Bradley. A whole forest is waiting.");
+  const [storageAvailable, setStorageAvailable] = useState(true);
+  const [canvasAvailable, setCanvasAvailable] = useState(true);
+  const [fullScreen, setFullScreen] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const canvas = useRef<HTMLCanvasElement>(null);
+  const arena = useRef<HTMLDivElement>(null);
+  const resumeButton = useRef<HTMLButtonElement>(null);
+  const replayButton = useRef<HTMLButtonElement>(null);
+  const audio = useRef<ForestAudio | null>(null);
+  const inputPointer = useRef<number | null>(null);
+  const reducedMotion = useRef(false);
+  const refresh = useCallback(() => setView({ ...game.current }), []);
+  const saveProfile = useCallback((patch: Partial<Profile>) => {
+    const next = { ...profileRef.current, ...patch };
+    profileRef.current = next;
+    setProfile(next);
+    try {
+      localStorage.setItem(PROFILE_KEY, JSON.stringify(next));
+      localStorage.setItem(LEGACY_BEST_KEY, String(next.bestScore));
+    } catch { setStorageAvailable(false); }
+  }, []);
+  const pause = useCallback(() => {
+    if (game.current.phase !== "playing") return;
+    game.current.phase = "paused";
+    inputPointer.current = null;
+    audio.current?.stop();
+    refresh();
+  }, [refresh]);
+  const doJump = useCallback(() => {
+    if (game.current.phase !== "playing") return;
+    audio.current?.unlock();
+    if (jump(game.current)) {
+      audio.current?.play(game.current.jumps === 2 ? "doubleJump" : "jump");
+      refresh();
     }
-  }, []);
+  }, [refresh]);
 
   useEffect(() => {
-    const img = new Image();
-    img.src = "/bradley/hoodie.png";
-    img.onload = () => { bradleyImg.current = img; };
-    // Best score persists across visits
-    const b = Number(localStorage.getItem(BEST_KEY) || 0);
-    if (b > 0) { gs.current.best = b; setBest(b); }
-  }, []);
-
-  useEffect(() => {
-    const canvas = canvasRef.current!;
-    const ctx = canvas.getContext("2d")!;
-
-    // Crisp rendering on retina screens
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    canvas.width = CW * dpr;
-    canvas.height = CH * dpr;
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-    const loop = () => {
-      const s = gs.current;
-      ctx.clearRect(0, 0, CW, CH);
-
-      // ── Dynamic sky ─────────────────────────────────────────────────────
-      const [skyTop, skyBot] = skyColor(s.score);
-      const skyG = ctx.createLinearGradient(0, 0, 0, GY);
-      skyG.addColorStop(0, skyTop);
-      skyG.addColorStop(1, skyBot);
-      ctx.fillStyle = skyG;
-      ctx.fillRect(0, 0, CW, GY);
-
-      // ── Night stars fade in at dusk ─────────────────────────────────────
-      const nightAlpha = Math.min(1, Math.max(0, (s.score - 550) / 200));
-      if (nightAlpha > 0) {
-        s.nightStars.forEach((st, i) => {
-          const twinkle = 0.45 + 0.55 * Math.abs(Math.sin(s.frame * 0.04 + i * 1.7));
-          ctx.fillStyle = `rgba(255,255,240,${(nightAlpha * twinkle).toFixed(2)})`;
-          ctx.beginPath(); ctx.arc(st.x, st.y, st.r, 0, Math.PI * 2); ctx.fill();
-        });
-      }
-
-      // ── Clouds drift slowly ─────────────────────────────────────────────
-      s.clouds.forEach(c => {
-        if (s.phase === "running") {
-          c.x -= c.sp * (s.speed / 4);
-          if (c.x + c.w < 0) { c.x = CW + c.w; c.y = 30 + Math.random() * 70; }
-        }
-        ctx.globalAlpha = 0.75 * (1 - nightAlpha * 0.65);
-        ctx.fillStyle = "#ffffff";
-        ctx.beginPath(); ctx.ellipse(c.x, c.y, c.w / 2, c.w / 6, 0, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath(); ctx.ellipse(c.x - c.w * 0.25, c.y + 4, c.w / 3.2, c.w / 8, 0, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath(); ctx.ellipse(c.x + c.w * 0.28, c.y + 3, c.w / 3.5, c.w / 8.5, 0, 0, Math.PI * 2); ctx.fill();
-        ctx.globalAlpha = 1;
-      });
-
-      // ── Layer 1: far trees (very slow) ──────────────────────────────────
-      s.farTrees.forEach(t => {
-        if (s.phase === "running") {
-          t.x -= 0.5;
-          if (t.x + t.h < 0) { t.x = CW + t.h; t.h = 52 + Math.random() * 45; }
-        }
-        const tw = t.h * 0.55;
-        ctx.globalAlpha = 0.35;
-        ctx.fillStyle = "#1a4a0a";
-        ctx.fillRect(t.x + tw * 0.4, GY - t.h * 0.45, tw * 0.2, t.h * 0.45);
-        ctx.beginPath(); ctx.arc(t.x + tw * 0.5, GY - t.h * 0.55, tw * 0.38, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath(); ctx.arc(t.x + tw * 0.5, GY - t.h * 0.8, tw * 0.27, 0, Math.PI * 2); ctx.fill();
-        ctx.globalAlpha = 1;
-      });
-
-      // ── Layer 2: mid trees (medium speed) ───────────────────────────────
-      s.midTrees.forEach(t => {
-        if (s.phase === "running") {
-          t.x -= t.sp * (s.speed / 4);
-          if (t.x + t.h < 0) { t.x = CW + t.h; t.h = 75 + Math.random() * 75; t.sp = 1.0 + Math.random() * 0.8; }
-        }
-        const tw = t.h * 0.65;
-        ctx.fillStyle = "#7a4520";
-        ctx.fillRect(t.x + tw * 0.38, GY - t.h * 0.48, tw * 0.24, t.h * 0.48);
-        ([ ["#2a6e1a", 0.44, 0.48], ["#35882a", 0.33, 0.72], ["#4aa030", 0.22, 0.92] ] as [string, number, number][]).forEach(([c, r, dy]) => {
-          ctx.fillStyle = c;
-          ctx.beginPath(); ctx.arc(t.x + tw * 0.5, GY - t.h * dy, tw * r, 0, Math.PI * 2); ctx.fill();
-        });
-      });
-
-      // Ground
-      ctx.fillStyle = "#3a6820"; ctx.fillRect(0, GY, CW, CH - GY);
-      ctx.fillStyle = "#52901e"; ctx.fillRect(0, GY, CW, 10);
-
-      // ── Layer 3: near bushes (fast) ──────────────────────────────────────
-      s.bushes.forEach(b => {
-        if (s.phase === "running") {
-          b.x -= s.speed * 1.6;
-          if (b.x + b.w < 0) { b.x = CW + b.w; b.w = 30 + Math.random() * 45; b.h = 18 + Math.random() * 15; }
-        }
-        ctx.fillStyle = "#2d5e12";
-        ctx.beginPath(); ctx.ellipse(b.x + b.w / 2, GY - b.h / 2, b.w / 2, b.h / 2, 0, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = "#3d7a1a";
-        ctx.beginPath(); ctx.ellipse(b.x + b.w * 0.3, GY - b.h * 0.6, b.w * 0.28, b.h * 0.5, 0, 0, Math.PI * 2); ctx.fill();
-      });
-
-      // ── Game logic ───────────────────────────────────────────────────────
-      if (s.phase === "running") {
-        s.frame++;
-        s.score = Math.floor(s.frame / 6) + s.coinsRun * 10;
-        s.speed = 4 + s.frame / 500;
-        if (s.power > 0) s.power--;
-
-        // Milestone check
-        for (const m of MILESTONES) {
-          if (s.score >= m && !s.passedMilestones.has(m)) {
-            s.passedMilestones.add(m);
-            s.milestone = `${m}m! 🎉`;
-            s.milestoneT = 90;
-            bloop.current(523, 0.1, "sine", 0.2, 784);
-            setTimeout(() => bloop.current(784, 0.12, "sine", 0.2, 1047), 120);
-          }
-        }
-        if (s.milestoneT > 0) s.milestoneT--;
-
-        // Spawn logs
-        s.nextLog--;
-        if (s.nextLog <= 0) {
-          s.logs.push({ x: CW + 10, w: 42 + Math.random() * 21, h: 36 + Math.random() * 36 });
-          s.nextLog = Math.max(50, 92 - s.frame / 80);
-        }
-
-        // Spawn coins
-        s.nextCoin--;
-        if (s.nextCoin <= 0) {
-          s.coins.push({ x: CW + 10, y: GY - 82 - Math.random() * 90, collected: false, animT: 0 });
-          s.nextCoin = 80 + Math.random() * 100;
-        }
-
-        // Spawn star power-up every ~15-25 seconds
-        if (!s.starPU) {
-          s.nextStar--;
-          if (s.nextStar <= 0) {
-            s.starPU = { x: CW + 20, y: GY - 110 - Math.random() * 70, animT: 0 };
-          }
-        } else {
-          s.starPU.x -= s.speed;
-          s.starPU.animT += 0.1;
-          if (s.starPU.x < -30) { s.starPU = null; s.nextStar = 900 + Math.random() * 600; }
-        }
-
-        // Move logs
-        s.logs = s.logs.map(l => ({ ...l, x: l.x - s.speed })).filter(l => l.x + l.w > 0);
-
-        // Move coins
-        s.coins = s.coins.map(c => ({ ...c, x: c.x - s.speed, animT: c.animT + 0.08 }))
-          .filter(c => c.x > -20);
-
-        // Physics
-        s.vy += GRAV;
-        s.by += s.vy;
-        if (s.by >= GY - BH) {
-          if (!s.grounded) {
-            // Landing puff
-            for (let i = 0; i < 4; i++) {
-              s.flecks.push({
-                x: BX + 10 + Math.random() * (BW - 20), y: GY - 3,
-                vx: (Math.random() - 0.5) * 3, vy: -0.5 - Math.random(),
-                life: 14, maxLife: 14, size: 3 + Math.random() * 3, color: "150,130,90",
-              });
-            }
-          }
-          s.by = GY - BH; s.vy = 0; s.grounded = true; s.jumps = 0; s.spinT = 0;
-        }
-
-        // Running dust
-        if (s.grounded && s.frame % 7 === 0) {
-          s.flecks.push({
-            x: BX + 6 + Math.random() * 10, y: GY - 2,
-            vx: -1.5 - Math.random() * 1.5, vy: -0.4 - Math.random() * 0.8,
-            life: 16, maxLife: 16, size: 2.5 + Math.random() * 3, color: "150,130,90",
-          });
-        }
-
-        // Footsteps
-        if (s.grounded && s.frame % 21 === 0) {
-          bloop.current(140 + Math.random() * 30, 0.07, "triangle", 0.07);
-        }
-
-        // Coin collision
-        const bcX = BX + BW / 2, bcY = s.by + BH / 2;
-        s.coins.forEach(c => {
-          if (!c.collected && Math.abs(bcX - c.x) < BW * 0.7 && Math.abs(bcY - c.y) < BH * 0.6) {
-            c.collected = true;
-            s.coinsRun++;
-            bloop.current(880, 0.05, "sine", 0.18, 1200);
-            setTimeout(() => bloop.current(1200, 0.08, "sine", 0.15), 60);
-          }
-        });
-        s.coins = s.coins.filter(c => !c.collected);
-
-        // Star power-up collision
-        if (s.starPU && Math.abs(bcX - s.starPU.x) < BW * 0.75 && Math.abs(bcY - s.starPU.y) < BH * 0.65) {
-          s.starPU = null;
-          s.nextStar = 1100 + Math.random() * 700;
-          s.power = POWER_FRAMES;
-          // Rising fanfare
-          [523, 659, 784, 1047].forEach((f, i) =>
-            setTimeout(() => bloop.current(f, 0.14, "square", 0.1), i * 90));
-        }
-
-        // Log collision — star power smashes right through!
-        const bL = BX + 9, bR = BX + BW - 9, bB = s.by + BH - 8;
-        const smashed = new Set<Log>();
-        for (const l of s.logs) {
-          if (bR > l.x + 5 && bL < l.x + l.w - 5 && bB > GY - l.h + 4) {
-            if (s.power > 0) {
-              smashed.add(l);
-              s.score += 5;
-              for (let i = 0; i < 12; i++) {
-                s.flecks.push({
-                  x: l.x + Math.random() * l.w, y: GY - Math.random() * l.h,
-                  vx: (Math.random() - 0.2) * 7, vy: -2 - Math.random() * 4,
-                  life: 24, maxLife: 24, size: 3 + Math.random() * 5, color: "160,85,37",
-                });
-              }
-              bloop.current(120, 0.16, "square", 0.16, 60);
-            } else {
-              s.phase = "dead";
-              s.flash = 12;
-              s.bearLunge = 0;
-              s.deathAt = Date.now();
-              if (s.score > s.best) {
-                s.best = s.score;
-                localStorage.setItem(BEST_KEY, String(s.best));
-              }
-              if (audioCtx.current) playRoar(audioCtx.current);
-              setPhase("dead"); setBest(s.best);
-              break;
-            }
-          }
-        }
-        if (smashed.size) s.logs = s.logs.filter(l => !smashed.has(l));
-
-      }
-
-      // ── Particles (dust, smash debris) — animate in every phase ─────────
-      s.flecks = s.flecks.filter(p => {
-        p.x += p.vx; p.y += p.vy; p.vy += 0.18; p.life--;
-        if (p.life <= 0) return false;
-        ctx.fillStyle = `rgba(${p.color},${(p.life / p.maxLife).toFixed(2)})`;
-        ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
-        return true;
-      });
-
-      // ── Draw logs ────────────────────────────────────────────────────────
-      s.logs.forEach(l => {
-        const lg = ctx.createLinearGradient(l.x, 0, l.x + l.w, 0);
-        lg.addColorStop(0, "#7B3B11"); lg.addColorStop(0.5, "#A05525"); lg.addColorStop(1, "#7B3B11");
-        ctx.fillStyle = lg; ctx.fillRect(l.x, GY - l.h, l.w, l.h);
-        ctx.strokeStyle = "#5a2b08"; ctx.lineWidth = 1.5;
-        ctx.beginPath(); ctx.ellipse(l.x + l.w / 2, GY - l.h, l.w / 2 - 1, 5, 0, 0, Math.PI * 2); ctx.stroke();
-        ctx.beginPath(); ctx.ellipse(l.x + l.w / 2, GY, l.w / 2 - 1, 5, 0, 0, Math.PI); ctx.stroke();
-      });
-
-      // ── Draw coins ───────────────────────────────────────────────────────
-      s.coins.forEach(c => {
-        const floatY = c.y + Math.sin(c.animT) * 5;
-        // Glow
-        const grd = ctx.createRadialGradient(c.x, floatY, 3, c.x, floatY, 20);
-        grd.addColorStop(0, "rgba(255,220,0,0.4)");
-        grd.addColorStop(1, "rgba(255,180,0,0)");
-        ctx.fillStyle = grd; ctx.beginPath(); ctx.arc(c.x, floatY, 20, 0, Math.PI * 2); ctx.fill();
-        // Coin
-        ctx.fillStyle = "#FFD700";
-        ctx.beginPath(); ctx.arc(c.x, floatY, 13, 0, Math.PI * 2); ctx.fill();
-        ctx.strokeStyle = "#FFA500"; ctx.lineWidth = 2.5;
-        ctx.stroke();
-        ctx.fillStyle = "#FFB300"; ctx.font = "bold 14px sans-serif"; ctx.textAlign = "center";
-        ctx.fillText("$", c.x, floatY + 5);
-        ctx.textAlign = "left";
-      });
-
-      // ── Draw star power-up ───────────────────────────────────────────────
-      if (s.starPU) {
-        const sy = s.starPU.y + Math.sin(s.starPU.animT) * 6;
-        const grd = ctx.createRadialGradient(s.starPU.x, sy, 4, s.starPU.x, sy, 30);
-        grd.addColorStop(0, "rgba(255,240,80,0.55)");
-        grd.addColorStop(1, "rgba(255,200,0,0)");
-        ctx.fillStyle = grd; ctx.beginPath(); ctx.arc(s.starPU.x, sy, 30, 0, Math.PI * 2); ctx.fill();
-        ctx.font = "34px serif"; ctx.textAlign = "center";
-        ctx.fillText("⭐", s.starPU.x, sy + 12);
-        ctx.textAlign = "left";
-      }
-
-      // ── Bear (chases; pounces when he catches you) ──────────────────────
-      const drawBear = (x: number, size: number, bob: number) => {
-        ctx.font = `${size}px serif`;
-        ctx.fillText("🐻", x, GY - 4 + bob);
-      };
-      if (s.phase === "running") {
-        const bearScale = Math.min(1.3, 0.55 + s.frame / 2200); // grows from 0.55x → 1.3x
-        drawBear(10, Math.floor(72 * bearScale), Math.sin(s.frame * 0.18) * 4 * bearScale);
-      }
-
-      // ── Bradley shadow ───────────────────────────────────────────────────
-      ctx.fillStyle = "rgba(0,0,0,0.15)";
-      ctx.beginPath(); ctx.ellipse(BX + BW / 2, GY + 5, BW * 0.45, 5, 0, 0, Math.PI * 2); ctx.fill();
-
-      // ── Bradley sprite (flips on double jump, glows with star power) ────
-      const bob = s.phase === "running" && s.grounded ? Math.sin(s.frame * 0.3) * 2.5 : 0;
-      const by = s.by + bob;
-      ctx.save();
-      if (s.spinT > 0) {
-        s.spinT--;
-        const ang = (1 - s.spinT / SPIN_FRAMES) * Math.PI * 2;
-        ctx.translate(BX + BW / 2, by + BH / 2);
-        ctx.rotate(ang);
-        ctx.translate(-(BX + BW / 2), -(by + BH / 2));
-      }
-      const powerBlink = s.power > 0 && (s.power > 90 || s.frame % 10 < 5);
-      if (powerBlink) {
-        ctx.shadowColor = `hsl(${(s.frame * 9) % 360}, 95%, 60%)`;
-        ctx.shadowBlur = 22;
-      }
-      ctx.save();
-      rrect(ctx, BX, by, BW, BH, 8); ctx.clip();
-      if (bradleyImg.current) {
-        ctx.drawImage(bradleyImg.current, BX, by, BW, BH);
-      } else {
-        ctx.fillStyle = "#f9c784"; ctx.fillRect(BX, by, BW, BH);
-      }
-      ctx.restore();
-      ctx.strokeStyle = powerBlink
-        ? `hsl(${(s.frame * 9) % 360}, 95%, 62%)`
-        : "rgba(255,255,255,0.85)";
-      ctx.lineWidth = powerBlink ? 4 : 2;
-      rrect(ctx, BX, by, BW, BH, 8); ctx.stroke();
-      ctx.restore();
-
-      // Bear pounce — drawn over Bradley after death
-      if (s.phase === "dead") {
-        if (s.bearLunge < 26) s.bearLunge++;
-        const t = s.bearLunge / 26;
-        const ease = 1 - (1 - t) * (1 - t);
-        const bearX = 10 + ease * (BX - 40);
-        const hop = Math.sin(t * Math.PI) * -46;
-        drawBear(bearX, 92, hop);
-      }
-
-      // ── HUD ──────────────────────────────────────────────────────────────
-      if (s.phase === "running") {
-        ctx.fillStyle = "rgba(0,0,0,0.4)";
-        rrect(ctx, 14, 14, 244, 46, 10); ctx.fill();
-        ctx.fillStyle = "white"; ctx.font = "bold 22px system-ui, sans-serif"; ctx.textAlign = "left";
-        ctx.fillText(`🏃 ${s.score}m`, 28, 46);
-        ctx.fillText(`🪙 ${s.coinsRun}`, 168, 46);
-
-        // Star-power countdown bar
-        if (s.power > 0) {
-          ctx.fillStyle = "rgba(0,0,0,0.4)";
-          rrect(ctx, 14, 66, 160, 10, 5); ctx.fill();
-          ctx.fillStyle = `hsl(${(s.frame * 9) % 360}, 95%, 58%)`;
-          rrect(ctx, 16, 68, 156 * (s.power / POWER_FRAMES), 6, 3); ctx.fill();
-        }
-
-        // Milestone popup
-        if (s.milestoneT > 0) {
-          const alpha = Math.min(1, s.milestoneT / 20);
-          const yOff = (90 - s.milestoneT) * 0.6;
-          ctx.globalAlpha = alpha;
-          ctx.fillStyle = "#FFD700"; ctx.font = "bold 38px system-ui, sans-serif"; ctx.textAlign = "center";
-          ctx.fillText(s.milestone, CW / 2, 82 - yOff);
-          ctx.globalAlpha = 1; ctx.textAlign = "left";
-        }
-      }
-
-      // ── Death flash ──────────────────────────────────────────────────────
-      if (s.flash > 0) {
-        ctx.fillStyle = `rgba(255,80,80,${s.flash / 12 * 0.65})`;
-        ctx.fillRect(0, 0, CW, CH);
-        s.flash--;
-      }
-
-      // ── Start overlay ────────────────────────────────────────────────────
-      if (s.phase === "idle") {
-        ctx.fillStyle = "rgba(0,30,0,0.68)"; ctx.fillRect(0, 0, CW, CH);
-        ctx.textAlign = "center";
-        ctx.fillStyle = "white"; ctx.font = "bold 42px system-ui, sans-serif";
-        ctx.fillText("🌲 Bradley's Forest Run! 🌲", CW / 2, 100);
-        ctx.fillStyle = "#b8f0b8"; ctx.font = "22px system-ui, sans-serif";
-        ctx.fillText("Jump logs · double-jump in the air · grab the ⭐ to smash!", CW / 2, 150);
-        if (gs.current.best > 0) {
-          ctx.fillStyle = "#FFD700"; ctx.font = "bold 24px system-ui, sans-serif";
-          ctx.fillText(`🏆 Best: ${gs.current.best}m`, CW / 2, 192);
-        }
-        const pulse = 0.96 + Math.sin(Date.now() / 350) * 0.04;
-        ctx.save(); ctx.translate(CW / 2, 270); ctx.scale(pulse, pulse);
-        ctx.fillStyle = "#4ade80"; rrect(ctx, -130, -30, 260, 60, 18); ctx.fill();
-        ctx.fillStyle = "#14532d"; ctx.font = "bold 30px system-ui, sans-serif"; ctx.fillText("🌿 TAP TO START!", 0, 10);
-        ctx.restore(); ctx.textAlign = "left";
-      }
-
-      // ── Dead overlay ─────────────────────────────────────────────────────
-      if (s.phase === "dead") {
-        ctx.fillStyle = "rgba(50,0,0,0.75)"; ctx.fillRect(0, 0, CW, CH);
-        ctx.textAlign = "center";
-        ctx.fillStyle = "#ff7070"; ctx.font = "bold 48px system-ui, sans-serif";
-        ctx.fillText("The bear got you! 🐻", CW / 2, 105);
-        ctx.fillStyle = "white"; ctx.font = "bold 36px system-ui, sans-serif";
-        ctx.fillText(`You ran ${s.score}m!`, CW / 2, 165);
-        ctx.fillStyle = "#FFD700"; ctx.font = "26px system-ui, sans-serif";
-        const bits = [`🪙 ${s.coinsRun} coins`];
-        if (s.best > 0) bits.push(`🏆 Best: ${s.best}m`);
-        ctx.fillText(bits.join("   ·   "), CW / 2, 215);
-        if (s.score >= s.best && s.best > 0 && s.score > 0) {
-          ctx.fillStyle = "#7CFC9A"; ctx.font = "bold 24px system-ui, sans-serif";
-          ctx.fillText("🌟 NEW BEST! 🌟", CW / 2, 255);
-        }
-        const pulse = 0.96 + Math.sin(Date.now() / 350) * 0.04;
-        ctx.save(); ctx.translate(CW / 2, 315); ctx.scale(pulse, pulse);
-        ctx.fillStyle = "#fb923c"; rrect(ctx, -140, -30, 280, 60, 16); ctx.fill();
-        ctx.fillStyle = "white"; ctx.font = "bold 28px system-ui, sans-serif";
-        ctx.fillText("🔄 TAP TO TRY AGAIN!", 0, 10);
-        ctx.restore(); ctx.textAlign = "left";
-      }
-
-      raf.current = requestAnimationFrame(loop);
+    const surface = canvas.current;
+    const context = surface?.getContext("2d", { alpha: false });
+    if (!surface || !context) {
+      const frame = requestAnimationFrame(() => setCanvasAvailable(false));
+      return () => cancelAnimationFrame(frame);
+    }
+    const sound = new ForestAudio();
+    audio.current = sound;
+    let saved = { ...DEFAULT_PROFILE };
+    let storageWorks = true;
+    try { saved = parseProfile(localStorage.getItem(PROFILE_KEY), localStorage.getItem(LEGACY_BEST_KEY)); }
+    catch { storageWorks = false; }
+    profileRef.current = saved;
+    game.current = createGame(saved.mode, saved.difficulty);
+    sound.setMuted(saved.muted);
+    let needsPaint = true;
+    const portrait = new window.Image();
+    portrait.onload = () => { needsPaint = true; };
+    portrait.src = "/bradley/explorer.png";
+    const draw = createForestRenderer();
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    reducedMotion.current = media.matches;
+    const motionChange = () => { reducedMotion.current = media.matches; needsPaint = true; };
+    media.addEventListener("change", motionChange);
+    const resize = () => {
+      const width = surface.getBoundingClientRect().width;
+      const ratio = Math.min(window.devicePixelRatio || 1, 1.5);
+      surface.width = Math.max(1, Math.round(width * ratio));
+      surface.height = Math.max(1, Math.round(width * WORLD.height / WORLD.width * ratio));
+      needsPaint = true;
     };
-
-    raf.current = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(raf.current);
-  }, []);
+    const observer = new ResizeObserver(resize);
+    observer.observe(surface);
+    resize();
+    let animation = 0;
+    let previousTime = 0;
+    let lastHud = 0;
+    let firstFrame = true;
+    let lastPhase = game.current.phase;
+    let sceneryTime = 0;
+    const handleEvent = (event: GameEvent) => {
+      const g = game.current;
+      if (event.type === "jump" || event.type === "doubleJump") {
+        sound.play(event.type);
+      } else if (event.type === "star") {
+        sound.play("star");
+        saveProfile({ totalStars: profileRef.current.totalStars + 1, bestRunStars: Math.max(profileRef.current.bestRunStars, g.stars), bestCombo: Math.max(profileRef.current.bestCombo, g.bestCombo) });
+        if (event.combo === 5) setMessage("Five stars in a row! Follow that golden trail, Bradley.");
+      } else if (event.type === "shield") {
+        sound.play("shield");
+        setMessage("Star shield! You can smash right through the logs.");
+      } else if (event.type === "hit") {
+        sound.play("hit");
+        setMessage(g.hearts > 0 ? "A little stumble. You've got this, Bradley—keep jumping!" : "Time for a breather. Every adventure makes you better.");
+      } else if (event.type === "smash") {
+        sound.play("smash");
+        setMessage("Nothing stops Super Bradley! Keep following the stars.");
+      } else if (event.type === "checkpoint") {
+        sound.play("checkpoint");
+        setMessage(`${REGIONS[g.region].name}! ${event.value ? "A fresh heart for the next part of your adventure." : "Full hearts. Ready for the next adventure!"}`);
+      } else if (event.type === "finish") {
+        const won = g.outcome === "complete";
+        sound.play(won ? "win" : "finish");
+        saveProfile({ runs: profileRef.current.runs + 1, trailWins: profileRef.current.trailWins + Number(won), bestDistance: Math.max(profileRef.current.bestDistance, Math.floor(g.distance)), bestScore: Math.max(profileRef.current.bestScore, Math.floor(g.score)), bestCombo: Math.max(profileRef.current.bestCombo, g.bestCombo), bestRunStars: Math.max(profileRef.current.bestRunStars, g.stars) });
+        setMessage(won ? "You made it to the summit, Bradley. What an adventure!" : "The trail will be here when you're ready to try again.");
+      }
+      refresh();
+    };
+    const animate = (now: number) => {
+      const dt = previousTime ? Math.min((now - previousTime) / 1000, 0.1) : 0;
+      previousTime = now;
+      if (firstFrame) {
+        setProfile(saved);
+        setStorageAvailable(storageWorks);
+        setLoaded(true);
+        refresh();
+        firstFrame = false;
+      }
+      const g = game.current;
+      if (!document.hidden) {
+        if (g.phase === "playing") { sceneryTime += dt; stepGame(g, dt).forEach(handleEvent); }
+        if (g.phase === "playing" || needsPaint || lastPhase !== g.phase) {
+          context.setTransform(surface.width / WORLD.width, 0, 0, surface.height / WORLD.height, 0, 0);
+          draw(context, g, sceneryTime, reducedMotion.current, portrait.complete && portrait.naturalWidth ? portrait : null);
+          needsPaint = false;
+          lastPhase = g.phase;
+        }
+        if (g.phase === "playing" && now - lastHud > 100) { refresh(); lastHud = now; }
+      }
+      animation = requestAnimationFrame(animate);
+    };
+    animation = requestAnimationFrame(animate);
+    const visibilityChange = () => { if (document.hidden) pause(); previousTime = 0; };
+    const fullscreenChange = () => { setFullScreen(document.fullscreenElement === arena.current); resize(); };
+    document.addEventListener("visibilitychange", visibilityChange);
+    document.addEventListener("fullscreenchange", fullscreenChange);
+    window.addEventListener("blur", pause);
+    window.addEventListener("pagehide", pause);
+    window.addEventListener("orientationchange", pause);
+    return () => {
+      cancelAnimationFrame(animation);
+      observer.disconnect();
+      media.removeEventListener("change", motionChange);
+      portrait.onload = null;
+      document.removeEventListener("visibilitychange", visibilityChange);
+      document.removeEventListener("fullscreenchange", fullscreenChange);
+      window.removeEventListener("blur", pause);
+      window.removeEventListener("pagehide", pause);
+      window.removeEventListener("orientationchange", pause);
+      sound.dispose();
+      audio.current = null;
+    };
+  }, [pause, refresh, saveProfile]);
 
   useEffect(() => {
-    const kd = (e: KeyboardEvent) => {
-      if (e.code === "Space" || e.code === "ArrowUp") { e.preventDefault(); act(); }
+    const keyDown = (event: KeyboardEvent) => {
+      if (game.current.phase !== "playing") return;
+      const target = event.target as HTMLElement;
+      if (target.closest("input, textarea, select") || target.isContentEditable) return;
+      if (event.code === "Escape" || event.code === "KeyP") { event.preventDefault(); pause(); return; }
+      if (target !== canvas.current || !["Space", "ArrowUp", "KeyW"].includes(event.code)) return;
+      event.preventDefault();
+      if (!event.repeat) doJump();
     };
-    window.addEventListener("keydown", kd);
-    return () => window.removeEventListener("keydown", kd);
-  }, [act]);
+    window.addEventListener("keydown", keyDown);
+    return () => window.removeEventListener("keydown", keyDown);
+  }, [doJump, pause]);
+  useEffect(() => {
+    if (view.phase === "paused") resumeButton.current?.focus({ preventScroll: true });
+    if (view.phase === "finished") replayButton.current?.focus({ preventScroll: true });
+  }, [view.phase]);
+
+  function start() {
+    game.current = createGame(profileRef.current.mode, profileRef.current.difficulty);
+    startGame(game.current);
+    inputPointer.current = null;
+    audio.current?.unlock();
+    audio.current?.play("start");
+    setMessage("Let's go, Bradley! Tap to jump. Tap again for a double jump.");
+    refresh();
+    canvas.current?.focus({ preventScroll: true });
+    const bounds = arena.current?.getBoundingClientRect();
+    if (bounds && (bounds.bottom > window.innerHeight || bounds.top < 0)) arena.current?.scrollIntoView({ block: "start", behavior: "instant" });
+  }
+  function resume() {
+    if (game.current.phase !== "paused") return;
+    game.current.phase = "playing";
+    inputPointer.current = null;
+    audio.current?.unlock();
+    refresh();
+    canvas.current?.focus({ preventScroll: true });
+  }
+  function choose(patch: { mode?: Mode; difficulty?: Difficulty }) {
+    if (!["ready", "finished"].includes(game.current.phase)) return;
+    saveProfile(patch);
+    if (patch.mode) game.current.mode = patch.mode;
+    if (patch.difficulty) game.current.difficulty = patch.difficulty;
+    refresh();
+  }
+  function pressJump(event: React.PointerEvent<HTMLElement>) {
+    if (game.current.phase !== "playing" || inputPointer.current !== null || event.button !== 0) return;
+    event.preventDefault();
+    inputPointer.current = event.pointerId;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    canvas.current?.focus({ preventScroll: true });
+    doJump();
+  }
+  function releaseJump(event: React.PointerEvent<HTMLElement>) {
+    if (inputPointer.current === event.pointerId) inputPointer.current = null;
+  }
+  function toggleSound() {
+    const muted = !profileRef.current.muted;
+    audio.current?.setMuted(muted);
+    if (!muted) audio.current?.unlock();
+    saveProfile({ muted });
+  }
+  async function toggleFullscreen() {
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen();
+      else if (arena.current?.requestFullscreen) await arena.current.requestFullscreen();
+      else setMessage("Turn your tablet sideways for a bigger view of the trail.");
+    } catch { setMessage("Turn your tablet sideways for a bigger view of the trail."); }
+  }
+  const playing = view.phase === "playing";
+  const finished = view.phase === "finished";
+  const canChoose = view.phase === "ready" || finished;
+  const completed = view.outcome === "complete";
+  const distance = Math.floor(view.distance);
+  const lap = Math.floor(view.distance / TOTAL_DISTANCE) + 1;
+  const trailDistance = view.mode === "endless" ? view.distance % TOTAL_DISTANCE : view.distance;
+  const progress = Math.min(100, trailDistance / TOTAL_DISTANCE * 100);
+  const isResult = view.phase === "paused" || finished;
+  const earned = Number(profile.bestRunStars >= 12) + Number(profile.bestCombo >= 5) + Number(profile.trailWins > 0);
 
   return (
-    <>
-      <Nav />
-      <main className="min-h-screen bg-zinc-950 px-4 pt-28 pb-16 flex flex-col items-center">
-        <div className="w-full max-w-[900px]">
-          <div className="flex items-end justify-between mb-3">
-            <div>
-              <p className="text-indigo-400 font-semibold tracking-widest uppercase text-sm mb-3">Kids Games</p>
-              <h1 className="text-4xl font-black text-white mb-1">Bradley&apos;s Forest Run</h1>
-              <p className="text-zinc-500">Jump logs · grab the ⭐ · escape the bear!</p>
+    <main className={styles.page}>
+      <div className={styles.shell}>
+        <header className={styles.topbar}>
+          <Link href="/personal/kids" className={styles.back}>← <span>Bradley’s games</span></Link>
+          <div className={styles.club}><Leaf size={21} /><span>THE BRADLEY ADVENTURE CLUB</span></div>
+          <button className={styles.sound} onClick={toggleSound} aria-label={profile.muted ? "Turn sound on" : "Mute sound"} aria-pressed={!profile.muted}><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><path d="M11 4 5 9H2v6h3l6 5V4Z" />{profile.muted ? <path d="m16 9 6 6m0-6-6 6" /> : <path d="M15 8a6 6 0 0 1 0 8m3-12a11 11 0 0 1 0 16" />}</svg><span>Sound {profile.muted ? "off" : "on"}</span></button>
+        </header>
+        <div className={styles.heading}><div><p className={styles.eyebrow}><span /> A LITTLE EXPLORER. A BIG WORLD.</p><h1>Bradley’s <em>Forest Run.</em></h1></div><div className={styles.expedition}><Mountain /><div><span>EXPEDITION NO. 01</span><strong>The road to Starlight Summit</strong></div></div></div>
+        <div className={styles.layout}>
+          <section className={styles.gameColumn} aria-label="Forest Run game">
+            <div className={styles.journey} aria-label="Your trail">
+              {REGIONS.map((region, index) => <div key={region.name} className={`${styles.journeyStop} ${view.region === index ? styles.currentStop : ""} ${view.region > index || completed ? styles.doneStop : ""}`} aria-current={view.region === index ? "step" : undefined}><span>{view.region > index || completed ? "✓" : `0${index + 1}`}</span><div><small>{index === 0 ? "FIND YOUR FEET" : index === 1 ? "FOLLOW THE GLOW" : "REACH FOR THE STARS"}</small><strong>{region.name}</strong></div></div>)}
             </div>
-            {best > 0 && (
-              <div className="text-right">
-                <p className="text-zinc-600 text-sm">Best</p>
-                <p className="text-yellow-400 font-black text-2xl">🏆 {best}m</p>
+            <div className={styles.arena} ref={arena}>
+              <div className={styles.hud}>
+                <div className={styles.distance}><Leaf size={24} /><strong>{distance}<small>m</small></strong><span>{view.mode === "trail" ? `OF ${TOTAL_DISTANCE}m` : "ENDLESS TRAIL"}</span></div>
+                <div className={styles.starCount}><Star size={20} /><strong>{view.stars}</strong><span>STARS</span></div>
+                <div className={styles.hearts} aria-label={`${view.hearts} of 3 hearts remaining`}>{[1, 2, 3].map((heart) => <span key={heart} className={heart <= view.hearts ? styles.fullHeart : styles.emptyHeart}><Heart filled={heart <= view.hearts} /></span>)}</div>
+                <div className={styles.arenaTools}><button onClick={pause} disabled={!playing} aria-label="Pause game"><svg width="17" height="19" viewBox="0 0 17 19" fill="currentColor" aria-hidden="true"><path d="M3 2h4v15H3zm7 0h4v15h-4z" /></svg></button><button onClick={toggleFullscreen} aria-label={fullScreen ? "Exit fullscreen" : "Enter fullscreen"}><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><path d="M9 3H3v6m12-6h6v6M3 15v6h6m12-6v6h-6" /></svg></button></div>
               </div>
-            )}
-          </div>
-
-          <div className="w-full cursor-pointer select-none mt-3" style={{ aspectRatio: "2/1", touchAction: "manipulation" }} onPointerDown={act}>
-            <canvas ref={canvasRef} width={CW} height={CH} className="w-full h-full rounded-2xl shadow-2xl" />
-          </div>
-
-          <button
-            onPointerDown={(e) => { e.preventDefault(); act(); }}
-            className="mt-5 w-full py-5 rounded-2xl bg-green-500 hover:bg-green-400 active:scale-95 transition-all text-white font-black text-2xl shadow-lg select-none"
-            style={{ touchAction: "manipulation" }}
-          >
-            {phase === "idle" ? "🌲 START!" : phase === "dead" ? "🔄 TRY AGAIN!" : "⬆️ JUMP!"}
-          </button>
-
-          <p className="text-center text-zinc-600 text-sm mt-3">
-            SPACE or tap to jump · tap again in the air to double-jump flip! · ⭐ = smash through logs
-          </p>
+              <div className={`${styles.world} ${isResult ? styles.resultWorld : view.phase === "ready" ? styles.lobbyWorld : ""}`}>
+                <canvas ref={canvas} width={960} height={540} className={styles.canvas} tabIndex={playing ? 0 : -1} aria-label="Bradley's forest trail. Tap to jump, then tap again in the air to double jump. Space or Up also jumps." aria-describedby="forest-controls" onPointerDown={pressJump} onPointerUp={releaseJump} onPointerCancel={(event) => { releaseJump(event); pause(); }} onLostPointerCapture={releaseJump} onContextMenu={(event) => event.preventDefault()} />
+                {playing && <>
+                  <div className={styles.regionTag}><span />{REGIONS[view.region].name}</div>
+                  {view.combo >= 3 && <div className={styles.combo}><Star size={16} />{view.combo} STAR STREAK</div>}
+                  {view.shield > 0 && <div className={styles.shieldStatus}><Star size={18} /><strong>STAR SHIELD</strong><span>{Math.ceil(view.shield)}s</span><i style={{ transform: `scaleX(${Math.min(1, view.shield / 7)})` }} /></div>}
+                  {view.distance < 28 && <div className={styles.firstTip}>Tap to jump <span>·</span> Tap again to go higher</div>}
+                </>}
+                {view.phase === "ready" && <div className={`${styles.overlay} ${styles.lobby}`}><div className={styles.intro}>
+                  <div className={styles.trailTicket}><Leaf size={15} /> BRADLEY’S NEXT GREAT ADVENTURE</div>
+                  <h2>Little feet.<br /><em>Wild adventure.</em></h2>
+                  <p>Golden stars. Secret trails. One very curious bear.<br />Let’s see how far those brave little feet can go.</p>
+                  <button className={styles.primary} disabled={!loaded || !canvasAvailable} onClick={start}>Hit the trail, Bradley <span>→</span></button>
+                  <div className={styles.introNotes}><span>3 hearts</span><i /> <span>2 jumps</span><i /><span>{view.mode === "trail" ? "1 big adventure" : "An endless adventure"}</span></div>
+                </div><span className={styles.trailSeal} aria-hidden="true"><Mountain size={44} /><strong>TRAIL<br />EXPLORER</strong><small>EST. BRADLEY</small></span></div>}
+                {view.phase === "paused" && <div className={styles.overlay}><div className={styles.resultCard}><span className={styles.resultIcon}><Leaf size={31} /></span><p className={styles.eyebrow}>EVEN EXPLORERS NEED A BREAK</p><h2>A moment in the shade.</h2><p>Your adventure is right where you left it.<br />Ready when you are, Bradley.</p><button ref={resumeButton} className={styles.primary} onClick={resume}>Back to the trail <span>→</span></button></div></div>}
+                {finished && <div className={styles.overlay}><div className={styles.resultCard}>
+                  <span className={`${styles.resultIcon} ${completed ? styles.goldIcon : ""}`}>{completed ? <Mountain size={33} /> : <Leaf size={31} />}</span>
+                  <p className={styles.eyebrow}>{completed ? "STARLIGHT SUMMIT · YOU MADE IT" : "A LITTLE REST. ANOTHER ADVENTURE."}</p>
+                  <h2>{completed ? "Trail legend, Bradley." : "Good exploring, Bradley!"}</h2>
+                  <p>{completed ? "Through the trees, across the creek, all the way to the stars." : "The bear caught up! Jump just before a log, then tap again if you need a little more height."}</p>
+                  <div className={styles.resultStats}><div><strong>{distance}<small>m</small></strong><span>DISTANCE</span></div><div><strong>{view.stars}</strong><span>STARS FOUND</span></div><div><strong>{Math.floor(view.score)}</strong><span>TRAIL SCORE</span></div></div>
+                  <button ref={replayButton} className={styles.primary} onClick={start}>Another adventure <span>↻</span></button>
+                  {completed && view.mode === "trail" && <button className={styles.extraAction} onClick={() => { choose({ mode: "endless" }); start(); }}>Keep exploring on the endless trail →</button>}
+                  {!completed && view.difficulty === "ranger" && <button className={styles.extraAction} onClick={() => { choose({ difficulty: "explorer" }); start(); }}>Try the gentler Explorer pace</button>}
+                </div></div>}
+                {!canvasAvailable && <div className={styles.canvasError}><h2>The trail couldn’t load.</h2><p>Try reopening this game in your browser.</p><Link href="/personal/kids">Back to Bradley’s games</Link></div>}
+              </div>
+              <div className={styles.trailProgress} aria-label={view.mode === "trail" ? `${distance} of ${TOTAL_DISTANCE} metres completed` : `${Math.floor(trailDistance)} of ${TOTAL_DISTANCE} metres on loop ${lap}`}><span>{view.mode === "endless" ? `LOOP ${lap}` : "BASE CAMP"}</span><div><i style={{ width: `${progress}%` }} />{[33.333, 66.667].map((left) => <b key={left} style={{ left: `${left}%` }} />)}</div><span>{view.mode === "trail" ? "THE SUMMIT" : "NEXT SUMMIT"}<Mountain size={15} /></span></div>
+              <div className={styles.controlsBar}>
+                <div className={styles.jumpInfo}><span>YOUR NEXT MOVE</span><strong>{view.jumps === 0 ? "Jump, then jump again." : view.jumps === 1 ? "One more jump in the air!" : "Land. Breathe. Jump again."}</strong></div>
+                <button className={styles.jumpButton} disabled={!playing} onPointerDown={pressJump} onPointerUp={releaseJump} onPointerCancel={(event) => { releaseJump(event); pause(); }} onLostPointerCapture={releaseJump} onKeyDown={(event) => { if (event.repeat && ["Enter", " "].includes(event.key)) event.preventDefault(); }} onClick={(event) => { if (event.detail === 0) doJump(); }} aria-label="Jump. Tap again in the air for a double jump."><span className={styles.jumpArrow}>↑</span><span>JUMP<small>TAP AGAIN TO DOUBLE JUMP</small></span><span className={styles.jumpDots} aria-hidden="true"><i className={view.jumps < 1 ? styles.jumpReady : ""} /><i className={view.jumps < 2 ? styles.jumpReady : ""} /></span></button>
+              </div>
+            </div>
+            <div className={styles.coach} role="status" aria-live="polite" aria-atomic="true"><Leaf size={17} /><p>{message}</p><span>{Math.floor(view.score)} PTS</span></div>
+            <div id="forest-controls" className={styles.instructions}><span>Tap the trail or the big jump button</span><span>SPACE / ↑ on a keyboard</span><span>Pause anytime</span></div>
+          </section>
+          <aside className={styles.sidebar} aria-label="Bradley's trail passport and game settings">
+            <section className={styles.passport}><div className={styles.passportTop}><Leaf size={16} /><span>EXPLORER’S PASSPORT</span><span>001</span></div><div className={styles.portrait}><span className={styles.explorerLines} /><Image src="/bradley/explorer.png" width={300} height={410} alt="Bradley, our brave trail explorer" priority /><span className={styles.passportStamp}>READY FOR<br /><strong>ADVENTURE</strong></span><div className={styles.nameplate}><small>SMALL BOOTS. BIG COURAGE.</small><h2>BRADLEY<span>SELLBERG</span></h2></div></div><div className={styles.records}><div><strong>{profile.bestDistance}<small>m</small></strong><span>FARTHEST TRAIL</span></div><div><strong>{profile.totalStars}</strong><span>STARS COLLECTED</span></div></div></section>
+            <section className={styles.settings}><h2 className={styles.sideLabel}>PICK YOUR ADVENTURE</h2><div className={styles.modePicker}>{(["trail", "endless"] as const).map((mode) => <button key={mode} disabled={!canChoose} aria-pressed={view.mode === mode} className={view.mode === mode ? styles.selected : ""} onClick={() => choose({ mode })}>{mode === "trail" ? "Summit trail" : "Endless"}</button>)}</div><p>{view.mode === "trail" ? "Three places to discover. Reach the summit at 450m. Each new place restores a heart." : "Keep exploring for as long as you can. How far will your next adventure take you?"}</p><div className={styles.paceRow}><span>YOUR PACE</span><div>{(["explorer", "ranger"] as const).map((difficulty) => <button key={difficulty} disabled={!canChoose} aria-pressed={view.difficulty === difficulty} className={view.difficulty === difficulty ? styles.activePace : ""} onClick={() => choose({ difficulty })}>{difficulty === "explorer" ? "Explorer" : "Ranger"}</button>)}</div></div><p className={styles.paceNote}>{view.difficulty === "explorer" ? "A gentler start with more time to jump." : "A quicker trail for confident jumpers."}{!canChoose && " Change after this run."}</p></section>
+            <section className={styles.badges}><div className={styles.badgeHeading}><h2 className={styles.sideLabel}>STAMPS FOR YOUR PASSPORT</h2><span>{earned}/3</span></div><div className={`${styles.badge} ${profile.bestRunStars >= 12 ? styles.earned : ""}`}><span><Star size={23} /></span><div><strong>Star scout</strong><small>{profile.bestRunStars >= 12 ? "STAMPED · 12 STARS IN ONE RUN" : "FIND 12 STARS IN ONE RUN"}</small></div></div><div className={`${styles.badge} ${profile.bestCombo >= 5 ? styles.earned : ""}`}><span className={styles.five}>5</span><div><strong>On a golden roll</strong><small>{profile.bestCombo >= 5 ? "STAMPED · FIVE STARS IN A ROW" : "CATCH FIVE STARS WITHOUT A STUMBLE"}</small></div></div><div className={`${styles.badge} ${profile.trailWins > 0 ? styles.earned : ""}`}><span><Mountain size={25} /></span><div><strong>Summit explorer</strong><small>{profile.trailWins > 0 ? "STAMPED · SUMMIT REACHED" : "FINISH THE SUMMIT TRAIL"}</small></div></div><p className={styles.saveNote}>{storageAvailable ? `Best trail score: ${profile.bestScore}. Your records stay on this browser.` : "Saving is unavailable. Your adventure still works!"}</p></section>
+          </aside>
         </div>
-      </main>
-    </>
+        <footer className={styles.footer}><Leaf size={15} /><span>MADE FOR BRADLEY. MEANT FOR ADVENTURE.</span><span>LEAVE NOTHING BUT LITTLE FOOTPRINTS.</span></footer>
+      </div>
+    </main>
   );
 }

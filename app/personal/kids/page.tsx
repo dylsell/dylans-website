@@ -17,10 +17,17 @@ const games = [
     color: "from-sky-500 to-blue-600",
   },
   {
+    href: "/personal/kids/soccer",
+    emoji: "⚽",
+    title: "Bradley’s Keeper Cup",
+    description: "USA’s number one! Save the Netherlands’ shots and lift the cup.",
+    color: "from-emerald-600 to-teal-800",
+  },
+  {
     href: "/personal/kids/forest-run",
     emoji: "🌲",
     title: "Forest Run",
-    description: "Double-jump, grab stars, escape the bear!",
+    description: "Bradley’s big adventure. Jump, find stars, and reach Starlight Summit!",
     color: "from-green-600 to-emerald-700",
   },
 ];
