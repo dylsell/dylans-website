@@ -3,6 +3,13 @@ import Nav from "../../components/Nav";
 
 const games = [
   {
+    href: "/personal/kids/space-rescue",
+    emoji: "🚀",
+    title: "Bradley’s Space Rescue",
+    description: "Blast aliens, beat four bosses, and rescue Nelly and the family!",
+    color: "from-indigo-600 to-violet-800",
+  },
+  {
     href: "/personal/kids/alphabet",
     emoji: "🔤",
     title: "Alphabet",
